@@ -139,7 +139,11 @@ const details = () => ({
                 tooltip:
                     `mode to use when cropping the video. conservative and auto will both attempt to auto-detect the 
                     crop ratio and handle appropriately, with conservative being a little less aggressive. none will 
-                    disable auto crop entirely`,
+                    disable auto crop entirely. 
+                    \\n
+                    \\n
+                    do not use crop mode 'none' and enable 'force_crop' or your transcodes will get stuck in an 
+                    infinite loop. 'none' should only be used if you wish to keep the black bars on all content.`,
             },
             {
                 name: 'preview_count',
@@ -166,35 +170,33 @@ const details = () => ({
             {
                 name: 'codecs_to_exclude',
                 type: 'string',
-                defaultValue: '',
+                defaultValue: 'hevc,h265,x265',
                 inputUI: {
                     type: 'text',
                 },
                 tooltip:
-                    `comma-separated list of input codecs that should be excluded when processing. unless force_crop is 
-                    enabled this list will always include the specified output codec. 
-                     \\nFor example, if transcoding into hevc (h265), then add a filter to block it from being 
-                     repeatedly transcoded
+                    `(optional) comma-separated list of input codecs that should be excluded when processing unless 
+                    force_crop is enabled, in which case HandBrake will be used to detect for letterboxing and if 
+                    found the file will be re-encoded anyway to remove that letterbox. Default value lists several 
+                    variations of h265 to prevent infinite loops when using the default output codec. 
                      \\n
                      \\nExample:
                      \\n
-                     hevc
-                     \\nExample:
-                     \\n
-                     hevc,vp9 `,
+                     hevc,h265,x265 `,
             },
             {
-                name: 'block_keyword',
+                name: 'block_keywords',
                 type: 'string',
                 defaultValue: '',
                 inputUI: {
                     type: 'text',
                 },
                 tooltip:
-                    `keyword or string of text to check for in the file name to prevent it from being transcoded. I use
-                    this to prevent transcoding files I want to keep in Remux form or otherwise block from being 
-                    transcoded without blocking them from going through the rest of the plugin stack (remove data 
-                    streams, add stereo audio, re-order streams, etc)`
+                    `(optional) comma-separated list of keywords or strings of text to check for in the file name to 
+                    prevent it from being transcoded. I use this to prevent transcoding files I want to keep in Remux 
+                    form or otherwise block from being transcoded without blocking them from going through the rest of 
+                    the plugin stack (remove data streams, add stereo audio, re-order streams, etc) which would happen 
+                     if included in the scanner settings option on the library's source tab`
             },
             {
                 name: 'dry_run',
@@ -245,14 +247,18 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
     // check for block keyword in file name
     const fileName = file._id.toLowerCase();
-    const blockKeyword = inputs.block_keyword;
-    if (blockKeyword) {
-        if (fileName.includes(blockKeyword.toLowerCase())) {
-            response.infoLog +=
-                `☒ Filename contains the configured block keyword '${blockKeyword}' - skipping this plugin.\n`;
-            return response;
+    const blockKeywordsStr = inputs.block_keywords;
+    if (blockKeywordsStr) {
+        const blockKeywords = blockKeywordsStr.split(',');
+        for (const blockKeyword of blockKeywords) {
+            if (fileName.includes(blockKeyword.toLowerCase())) {
+                response.infoLog +=
+                    `☒ File name contains the block keyword '${blockKeyword}' - skipping this plugin.\n`;
+                return response;
+            }
         }
-        response.infoLog += `☑ Filename does not include the configured block keyword '${blockKeyword}' \n`;
+        response.infoLog +=
+            `☑ File name does not include any of the block keywords: [${blockKeywords.join(',')}] \n`;
     }
 
     // check if bitrate is high enough to process
@@ -269,17 +275,29 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
             `${minimumBitrate.toLocaleString()} Kbps \n`;
     }
 
-    // check if file is already target codec or is in the blocked codec list
+    // check if file's current codec is in the blocked codec list
     const inputCodec = file.ffProbeData.streams[0].codec_name;
-    const outputCodec = inputs.output_codec;
-    const isBlockedCodec = inputCodec === outputCodec // already specified output codec
-        || (inputs.codecs_to_exclude && inputs.codecs_to_exclude.includes(inputCodec)); // codec in exclude list
+    const excludeCodecsStr = inputs.codecs_to_exclude;
+    let isBlockedCodec = false;
+    if (excludeCodecsStr) {
+        const excludeCodecs = excludeCodecsStr.toLowerCase().split(',');
+        isBlockedCodec = excludeCodecs.includes(inputCodec.toLowerCase());
+        if (isBlockedCodec) {
+            response.infoLog +=
+                `☒ File codec '${inputCodec}' is in the blocked codec list: [${excludeCodecs.join(',')}] \n`;
+        } else {
+            response.infoLog +=
+                `☑ File codec '${inputCodec}' is not in the blocked codec list: [${excludeCodecs.join(',')}] \n`;
+        }
+    } else {
+        response.infoLog +=
+            `☑ No codecs have been added to codecs_to_exclude - this may cause infinite loop errors \n`;
+    }
 
-    // set autocrop settings - used by transcode even if force_crop is disabled
-    const autocropSettings = `--crop-mode ${inputs.crop_mode} --previews ${inputs.preview_count}:0`;
+    // set autocrop args - used by transcode even if force_crop is disabled
+    const autocropArgs = `--crop-mode ${inputs.crop_mode} --previews ${inputs.preview_count}:0`;
 
-    //// check for letterbox if force_crop enabled ////
-    // if input codec is blocked but force_crop enabled then detect letterbox
+    // detect letterbox if input codec is in the exclude list and force_crop enabled
     const forceCrop = inputs.force_crop;
     let cropRequired = false;
     if (isBlockedCodec && forceCrop) {
@@ -292,60 +310,57 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
         // execute handbrake scan to get autocrop values
         const scanResult = execSync(
-            `"${otherArguments.handbrakePath}" -i "${file.meta.SourceFile}" ${autocropSettings} --scan  2>&1 ` +
+            `"${otherArguments.handbrakePath}" -i "${file.meta.SourceFile}" ${autocropArgs} --scan 2>&1 ` +
             `| ${grep} "autocrop:"`
         ).toString();
 
-        // returns something like "+ autocrop: 132/132/0/0" - need to slice off the numbers for parsing
-        let cropdetectStr;
+        // should return something like "+ autocrop: 132/132/0/0" - if not assume no crop required
+        let cropdetect = [];
         if (scanResult) {
             try {
-                // slice at the ':' and take the second half, then trim it
-                cropdetectStr = scanResult.split(':')[1].trim();
-            } catch (err) {
-                // unexpected return value - just swallow and assume no crop
-            }
-            // check if crop is required
-            if (cropdetectStr) {
-                const cropArr = cropdetectStr.toString().split("/");
-                try {
-                    // parse crop_min_pixels setting to int
-                    const cropMinPixels = parseInt(inputs.crop_min_pixels);
-                    // if our array has 4 values (top/bottom/left/right) and any one exceeds our min_pixels
-                    if (cropArr.length === 4 && cropArr.some((val) => val > cropMinPixels)) {
+                // slice at the ':' and take the second half with the values. trim to remove whitespace
+                const cropdetectStr = scanResult.split(':')[1].trim();
+                if (cropdetectStr) {
+                    // split on '/' to get individual top/bottom/left/right values
+                    cropdetect = cropdetectStr.toString().split('/');
+                    // if our array has 4 values and any one exceeds our min_pixels setting then crop is required
+                    if (cropdetect.length === 4
+                        && cropdetect.some((val) => parseInt(val) > parseInt(inputs.crop_min_pixels))) {
                         cropRequired = true;
                     }
-                } catch (err) {
-                    // autocrop return value unexpected format - assume no cropping
                 }
+            } catch (err) {
+                // unable to parse cropdetect return value - swallow the error and assume no crop is required
             }
         }
 
         // add info output with cropdetect details
         if (cropRequired) {
             response.infoLog +=
-                `☑ Plugin force_crop is enabled and Handbrake found autocrop is required: [${cropdetectStr}] \n`;
+                `☒ Force Crop is enabled and letterboxing was detected: [${cropdetect.join('/')}] \n`;
         } else {
             response.infoLog +=
-                `☑ Plugin force_crop is enabled but Handbrake found autocrop is not required: [${cropdetectStr}] \n`;
+                `☑ Force Crop is enabled but letterboxing was not detected: [${cropdetect.join('/')}] \n`;
         }
     }
 
 
     //// determine if we should transcode ////
-    // check if codec is in the skip list
+    const outputCodec = inputs.output_codec;
     if (isBlockedCodec) {
         if (forceCrop && cropRequired) {
-            response.infoLog += `☑ File is ${inputCodec} but crop is required - starting transcode. \n`;
+            response.infoLog +=
+                `☒ File is already ${inputCodec} but letterboxing was detected - starting transcode. \n`;
         } else if (forceCrop) {
-            response.infoLog += `☑ File is ${inputCodec} and no crop is required - skipping transcode. \n`;
+            response.infoLog +=
+                `☑ File is already ${inputCodec} but no letterboxing was detected - skipping transcode. \n`;
             return response;
         } else {
-            response.infoLog += `☑ File is ${inputCodec} and force_crop is not enabled - skipping transcode. \n`;
+            response.infoLog += `☑ File is already ${inputCodec} - skipping transcode. \n`;
             return response;
         }
     } else {
-        response.infoLog += `☑ File is ${inputCodec} but target codec is ${outputCodec} - starting transcode. \n`;
+        response.infoLog += `☒ File is ${inputCodec} but target codec is ${outputCodec} - starting transcode. \n`;
     }
 
 
@@ -376,13 +391,14 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
     // create handbrake command
     response.preset =
-        `${format} ${encoder} ${encoderPreset} ${quality} ${autocropSettings} --markers --align-av ` +
+        `${format} ${encoder} ${encoderPreset} ${quality} ${autocropArgs} --markers --align-av ` +
         `--audio-lang-list eng --all-audio --aencoder copy --audio-copy-mask aac,ac3,eac3,truehd,dts,dtshd,mp3,flac ` +
         `--audio-fallback aac --mixdown dp12 --arate auto --subtitle-lang-list eng --native-language eng --native-dub `;
     response.container = inputs.output_container;
 
     // check for test mode - if so exit
     if (inputs.dry_run) {
+        response.infoLog += `☒ Dry Run is enabled - skipping transcode \n`;
         return response;
     }
 
