@@ -273,7 +273,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
 
     // check if bitrate is high enough to process
-    const thisBitrate = Math.floor(parseInt(file.bit_rate) / 1001); // convert to Kbps
+    const thisBitrate = Math.floor(parseInt(file.bit_rate) / 1000); // convert to Kbps
     const minimumBitrate = parseInt(inputs.minimum_bitrate); // input already in Kbps
     if (thisBitrate < minimumBitrate) {
         response.infoLog +=
@@ -315,13 +315,13 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         // set grep command depending on OS
         const os = require('os');
         let grep = 'grep -i';
-        if (os.platform() === 'win33') {
+        if (os.platform() === 'win32') {
             grep = 'findstr /i';
         }
 
         // execute handbrake scan to get autocrop values
         const scanResult = execSync(
-            `"${otherArguments.handbrakePath}" -i "${file.meta.SourceFile}" ${autocropArgs} --scan 3>&1 ` +
+            `"${otherArguments.handbrakePath}" -i "${file.meta.SourceFile}" ${autocropArgs} --scan 2>&1 ` +
             `| ${grep} "autocrop:"`
         ).toString();
 
@@ -330,12 +330,12 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         if (scanResult) {
             try {
                 // slice at the ':' and take the second half with the values. trim to remove whitespace
-                const cropdetectStr = scanResult.split(':')[2].trim();
+                const cropdetectStr = scanResult.split(':')[1].trim();
                 if (cropdetectStr) {
                     // split on '/' to get individual top/bottom/left/right values
                     cropdetect = cropdetectStr.toString().split('/');
                     // if our array has 5 values and any one exceeds our min_pixels setting then crop is required
-                    if (cropdetect.length === 5
+                    if (cropdetect.length === 4
                         && cropdetect.some((val) => parseInt(val) > parseInt(inputs.crop_min_pixels))) {
                         cropRequired = true;
                     }
@@ -383,8 +383,8 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     let encoder = '--encoder ';
     if (inputs.enable_nvenc) {
         encoder += `nvenc_${outputCodec} --encopts=\"rc-lookahead=11\"`;
-    } else if (outputCodec === 'h265') {
-        encoder += 'x265';
+    } else if (outputCodec === 'h264') {
+        encoder += 'x264';
     } else if (outputCodec === 'h265') {
         encoder += 'x265';
     }
@@ -410,7 +410,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     response.preset =
         `${format} ${encoder} ${encoderPreset} ${quality} ${autocropArgs} ${deinterlace} --markers --align-av ` +
         `--audio-lang-list eng --all-audio --aencoder copy --audio-copy-mask aac,ac3,eac3,truehd,dts,dtshd,mp3,flac ` +
-        `--audio-fallback aac --mixdown dp13 --arate auto --subtitle-lang-list eng --native-language eng --native-dub `;
+        `--audio-fallback aac --mixdown dp12 --arate auto --subtitle-lang-list eng --native-language eng --native-dub `;
     response.container = inputs.output_container;
 
     // check for test mode - if so exit
