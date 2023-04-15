@@ -287,7 +287,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
 
     // check if file's current codec is in the blocked codec list
-    const inputCodec = file.ffProbeData.streams[1].codec_name;
+    const inputCodec = file.ffProbeData.streams[0].codec_name;
     const excludeCodecsStr = inputs.codecs_to_exclude;
     let isBlockedCodec = false;
     if (excludeCodecsStr) {
