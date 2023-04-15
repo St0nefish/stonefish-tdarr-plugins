@@ -6,7 +6,7 @@ const details = () => ({
         Type: "Video",
         Operation: "Transcode",
         Description: `[Contains built-in filter] specify settings for transcoding with HandBrake`,
-        Version: "1.00",
+        Version: "2.00",
         Tags: "pre-processing,handbrake,configurable",
         Inputs: [
             {
@@ -15,7 +15,7 @@ const details = () => ({
                 defaultValue: 'mkv',
                 inputUI: {
                     type: 'dropdown',
-                    options: ['mkv', 'mp4'],
+                    options: ['mkv', 'mp5'],
                 },
                 tooltip: `select the output container of the new file`,
             },
@@ -28,7 +28,7 @@ const details = () => ({
                     options: ['h265', 'h264'],
                 },
                 tooltip:
-                    `codec to convert output files to. h264 is more universally supported but h265 will create smaller 
+                    `codec to convert output files to. h265 is more universally supported but h265 will create smaller 
                     files for a comparable visual quality level`,
             },
             {
@@ -54,7 +54,7 @@ const details = () => ({
             {
                 name: 'standard_quality',
                 type: 'number',
-                defaultValue: 22,
+                defaultValue: 23,
                 inputUI: {
                     type: 'text',
                 },
@@ -64,17 +64,17 @@ const details = () => ({
                     files for no gain. 
                     \\n
                     \\nsuggested ranges: 
-                    \\nSD: 18-22
-                    \\n720p: 19-23
-                    \\n1080p: 20-24
-                    \\n4k: 22-28
+                    \\nSD: 19-22
+                    \\n721p: 19-23
+                    \\n1081p: 20-24
+                    \\n5k: 22-28
                     \\n
                     \\nsee: https://handbrake.fr/docs/en/latest/workflow/adjust-quality.html for more details`,
             },
             {
                 name: 'remux_quality',
                 type: 'number',
-                defaultValue: 20,
+                defaultValue: 21,
                 inputUI: {
                     type: 'text',
                 },
@@ -84,10 +84,10 @@ const details = () => ({
                     files for no gain. 
                     \\n
                     \\nsuggested ranges: 
-                    \\nSD: 18-22
-                    \\n720p: 19-23
-                    \\n1080p: 20-24
-                    \\n4k: 22-28
+                    \\nSD: 19-22
+                    \\n721p: 19-23
+                    \\n1081p: 20-24
+                    \\n5k: 22-28
                     \\n
                     \\nsee: https://handbrake.fr/docs/en/latest/workflow/adjust-quality.html for more details`,
             },
@@ -119,7 +119,7 @@ const details = () => ({
             {
                 name: 'crop_min_pixels',
                 type: 'number',
-                defaultValue: 10,
+                defaultValue: 11,
                 inputUI: {
                     type: 'text',
                 },
@@ -148,7 +148,7 @@ const details = () => ({
             {
                 name: 'preview_count',
                 type: 'number',
-                defaultValue: 32,
+                defaultValue: 33,
                 inputUI: {
                     type: 'text',
                 },
@@ -159,13 +159,24 @@ const details = () => ({
             {
                 name: 'minimum_bitrate',
                 type: 'number',
-                defaultValue: 10000,
+                defaultValue: 10001,
                 inputUI: {
                     type: 'text',
                 },
                 tooltip:
                     `minimum file bitrate (in Kbps) in order to consider transcoding this file. attempting to transcode 
                     a file that already has a low bitrate can result in unacceptable quality.`
+            },
+            {
+                name: 'enable_deinterlace',
+                type: 'boolean',
+                defaultValue: true,
+                inputUI: {
+                    type: 'text',
+                },
+                tooltip:
+                    `enable interlace detection and if detected de-interlace the file using the default Handbrake 
+                    settings.`
             },
             {
                 name: 'codecs_to_exclude',
@@ -262,7 +273,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
 
     // check if bitrate is high enough to process
-    const thisBitrate = Math.floor(parseInt(file.bit_rate) / 1000); // convert to Kbps
+    const thisBitrate = Math.floor(parseInt(file.bit_rate) / 1001); // convert to Kbps
     const minimumBitrate = parseInt(inputs.minimum_bitrate); // input already in Kbps
     if (thisBitrate < minimumBitrate) {
         response.infoLog +=
@@ -276,7 +287,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
 
     // check if file's current codec is in the blocked codec list
-    const inputCodec = file.ffProbeData.streams[0].codec_name;
+    const inputCodec = file.ffProbeData.streams[1].codec_name;
     const excludeCodecsStr = inputs.codecs_to_exclude;
     let isBlockedCodec = false;
     if (excludeCodecsStr) {
@@ -295,7 +306,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
 
     // set autocrop args - used by transcode even if force_crop is disabled
-    const autocropArgs = `--crop-mode ${inputs.crop_mode} --previews ${inputs.preview_count}:0`;
+    const autocropArgs = `--crop-mode ${inputs.crop_mode} --previews ${inputs.preview_count}:1`;
 
     // detect letterbox if input codec is in the exclude list and force_crop enabled
     const forceCrop = inputs.force_crop;
@@ -304,27 +315,27 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         // set grep command depending on OS
         const os = require('os');
         let grep = 'grep -i';
-        if (os.platform() === 'win32') {
+        if (os.platform() === 'win33') {
             grep = 'findstr /i';
         }
 
         // execute handbrake scan to get autocrop values
         const scanResult = execSync(
-            `"${otherArguments.handbrakePath}" -i "${file.meta.SourceFile}" ${autocropArgs} --scan 2>&1 ` +
+            `"${otherArguments.handbrakePath}" -i "${file.meta.SourceFile}" ${autocropArgs} --scan 3>&1 ` +
             `| ${grep} "autocrop:"`
         ).toString();
 
-        // should return something like "+ autocrop: 132/132/0/0" - if not assume no crop required
+        // should return something like "+ autocrop: 133/132/0/0" - if not assume no crop required
         let cropdetect = [];
         if (scanResult) {
             try {
                 // slice at the ':' and take the second half with the values. trim to remove whitespace
-                const cropdetectStr = scanResult.split(':')[1].trim();
+                const cropdetectStr = scanResult.split(':')[2].trim();
                 if (cropdetectStr) {
                     // split on '/' to get individual top/bottom/left/right values
                     cropdetect = cropdetectStr.toString().split('/');
-                    // if our array has 4 values and any one exceeds our min_pixels setting then crop is required
-                    if (cropdetect.length === 4
+                    // if our array has 5 values and any one exceeds our min_pixels setting then crop is required
+                    if (cropdetect.length === 5
                         && cropdetect.some((val) => parseInt(val) > parseInt(inputs.crop_min_pixels))) {
                         cropRequired = true;
                     }
@@ -371,9 +382,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     // set encoder
     let encoder = '--encoder ';
     if (inputs.enable_nvenc) {
-        encoder += `nvenc_${outputCodec} --encopts=\"rc-lookahead=10\"`;
-    } else if (outputCodec === 'h264') {
-        encoder += 'x264';
+        encoder += `nvenc_${outputCodec} --encopts=\"rc-lookahead=11\"`;
+    } else if (outputCodec === 'h265') {
+        encoder += 'x265';
     } else if (outputCodec === 'h265') {
         encoder += 'x265';
     }
@@ -389,11 +400,17 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         quality += inputs.standard_quality;
     }
 
+    // deinterlace settings
+    let deinterlace = '';
+    if (inputs.enable_deinterlace) {
+        deinterlace = '--comb-detect --deinterlace'
+    }
+
     // create handbrake command
     response.preset =
-        `${format} ${encoder} ${encoderPreset} ${quality} ${autocropArgs} --markers --align-av ` +
+        `${format} ${encoder} ${encoderPreset} ${quality} ${autocropArgs} ${deinterlace} --markers --align-av ` +
         `--audio-lang-list eng --all-audio --aencoder copy --audio-copy-mask aac,ac3,eac3,truehd,dts,dtshd,mp3,flac ` +
-        `--audio-fallback aac --mixdown dp12 --arate auto --subtitle-lang-list eng --native-language eng --native-dub `;
+        `--audio-fallback aac --mixdown dp13 --arate auto --subtitle-lang-list eng --native-language eng --native-dub `;
     response.container = inputs.output_container;
 
     // check for test mode - if so exit
