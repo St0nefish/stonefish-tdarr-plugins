@@ -85,48 +85,45 @@ const details = (): IpluginDetails => ({
   ],
 });
 
+// function to get the value of a variable reference
+const getVariableValue = (reference: string, args: IpluginInputArgs) => {
+  if (reference.startsWith('args.')) {
+    // variable could be e.g. args.librarySettings._id or args.inputFileObj._id
+    const variableParts = reference.split('.');
+    switch (variableParts.length) {
+      case 1:
+        return args;
+      case 2:
+        // @ts-expect-error index
+        return args[variableParts[1]];
+      case 3:
+        // @ts-expect-error index
+        return args[variableParts[1]][variableParts[2]];
+      case 4:
+        // @ts-expect-error index
+        return args[variableParts[1]][variableParts[2]][variableParts[3]];
+      case 5:
+        // @ts-expect-error index
+        return args[variableParts[1]][variableParts[2]][variableParts[3]][variableParts[4]];
+      default:
+        throw new Error(`invalid variable: [${reference}]`);
+    }
+  } else {
+    // if it's not relative to args throw an error for invalid reference
+    throw new Error(`variable [${reference}] is not a valid reference. expecting 'args.{something}'`);
+  }
+};
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   const lib = require('../../../../../methods/lib')();
   // eslint-disable-next-line no-param-reassign
   args.inputs = lib.loadDefaultValues(args.inputs, details);
   // retrieve configuration
-  const variable = String(args.inputs.variable).trim();
+  const currentValue = Number(args.inputs.variable) ?? 0;
   const condition = String(args.inputs.condition);
   const expectedValue = Number(args.inputs.value);
-  args.jobLog(`retrieving value for numeric variable [${variable}]`);
-  // function to get the value of a variable reference
-  const getVariableValue = (reference: string) => {
-    if (reference.startsWith('args.')) {
-      // variable could be e.g. args.librarySettings._id or args.inputFileObj._id
-      const variableParts = reference.split('.');
-      switch (variableParts.length) {
-        case 1:
-          return args;
-        case 2:
-          // @ts-expect-error index
-          return args[variableParts[1]];
-        case 3:
-          // @ts-expect-error index
-          return args[variableParts[1]][variableParts[2]];
-        case 4:
-          // @ts-expect-error index
-          return args[variableParts[1]][variableParts[2]][variableParts[3]];
-        case 5:
-          // @ts-expect-error index
-          return args[variableParts[1]][variableParts[2]][variableParts[3]][variableParts[4]];
-        default:
-          throw new Error(`invalid variable: [${reference}]`);
-      }
-    } else {
-      // if it's not relative to args throw an error for invalid reference
-      throw new Error(`variable [${reference}] is not a valid reference. expecting 'args.{something}'`);
-    }
-  };
-  // get current value
-  const currentValue = Number(JSON.stringify(variable) ?? 0);
   // evaluate condition
-  args.jobLog(`variable [${variable}] has current value [${currentValue}]`);
   args.jobLog(`checking if [${currentValue}] [${condition}] [${expectedValue}]`);
   let outputNumber: number;
   switch (condition) {

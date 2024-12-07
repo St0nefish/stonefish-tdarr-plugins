@@ -66,6 +66,35 @@ var details = function () { return ({
     ],
 }); };
 exports.details = details;
+// function to get the value of a variable reference
+var getVariableValue = function (reference, args) {
+    if (reference.startsWith('args.')) {
+        // variable could be e.g. args.librarySettings._id or args.inputFileObj._id
+        var variableParts = reference.split('.');
+        switch (variableParts.length) {
+            case 1:
+                return args;
+            case 2:
+                // @ts-expect-error index
+                return args[variableParts[1]];
+            case 3:
+                // @ts-expect-error index
+                return args[variableParts[1]][variableParts[2]];
+            case 4:
+                // @ts-expect-error index
+                return args[variableParts[1]][variableParts[2]][variableParts[3]];
+            case 5:
+                // @ts-expect-error index
+                return args[variableParts[1]][variableParts[2]][variableParts[3]][variableParts[4]];
+            default:
+                throw new Error("invalid variable: [".concat(reference, "]"));
+        }
+    }
+    else {
+        // if it's not relative to args throw an error for invalid reference
+        throw new Error("variable [".concat(reference, "] is not a valid reference. expecting 'args.{something}'"));
+    }
+};
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var plugin = function (args) {
     var _a;
@@ -73,43 +102,10 @@ var plugin = function (args) {
     // eslint-disable-next-line no-param-reassign
     args.inputs = lib.loadDefaultValues(args.inputs, details);
     // retrieve configuration
-    var variable = String(args.inputs.variable).trim();
+    var currentValue = (_a = Number(args.inputs.variable)) !== null && _a !== void 0 ? _a : 0;
     var condition = String(args.inputs.condition);
     var expectedValue = Number(args.inputs.value);
-    args.jobLog("retrieving value for numeric variable [".concat(variable, "]"));
-    // function to get the value of a variable reference
-    var getVariableValue = function (reference) {
-        if (reference.startsWith('args.')) {
-            // variable could be e.g. args.librarySettings._id or args.inputFileObj._id
-            var variableParts = reference.split('.');
-            switch (variableParts.length) {
-                case 1:
-                    return args;
-                case 2:
-                    // @ts-expect-error index
-                    return args[variableParts[1]];
-                case 3:
-                    // @ts-expect-error index
-                    return args[variableParts[1]][variableParts[2]];
-                case 4:
-                    // @ts-expect-error index
-                    return args[variableParts[1]][variableParts[2]][variableParts[3]];
-                case 5:
-                    // @ts-expect-error index
-                    return args[variableParts[1]][variableParts[2]][variableParts[3]][variableParts[4]];
-                default:
-                    throw new Error("invalid variable: [".concat(reference, "]"));
-            }
-        }
-        else {
-            // if it's not relative to args throw an error for invalid reference
-            throw new Error("variable [".concat(reference, "] is not a valid reference. expecting 'args.{something}'"));
-        }
-    };
-    // get current value
-    var currentValue = Number((_a = JSON.stringify(variable)) !== null && _a !== void 0 ? _a : 0);
     // evaluate condition
-    args.jobLog("variable [".concat(variable, "] has current value [").concat(currentValue, "]"));
     args.jobLog("checking if [".concat(currentValue, "] [").concat(condition, "] [").concat(expectedValue, "]"));
     var outputNumber;
     switch (condition) {
