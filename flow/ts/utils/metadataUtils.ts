@@ -1,23 +1,41 @@
 import { IffmpegCommandStream } from '../interfaces/interfaces';
 
-// map of channel count to common user-friendly name
-const channelMap: {
-  [key: string]: string
-} = {
-  8: '7.1',
-  7: '6.1',
-  6: '5.1',
-  2: '2.0',
-  1: '1.0',
-};
+// function to set a typeIndex field on each stream in the input array
+export const generateTypeIndexes = (streams: IffmpegCommandStream[]): void => (
+  streams.map((stream) => stream.codec_type)
+    .filter((value, index, array) => array.indexOf(value) === index)
+    .forEach((codecType) => {
+      // for each unique codec type set type index
+      streams.filter((stream) => stream.codec_type === codecType)
+        .forEach((stream, index) => {
+          // eslint-disable-next-line no-param-reassign
+          stream.typeIndex = index;
+        });
+    }));
 
-// function to get the user-friendly channel layout name from a stream
-export const getChannelsName = (stream: IffmpegCommandStream): string => channelMap[Number(stream.channels)];
+// function to get a map of streams keyed on codec type
+export const getStreamsByType = (streams: IffmpegCommandStream[]): { [key: string]: IffmpegCommandStream[] } => (
+  streams.reduce(
+    (map: { [key: string]: IffmpegCommandStream[] }, stream) => ({
+      ...map,
+      [stream.codec_type]: [...(map[stream.codec_type] || []), stream],
+    }),
+    {},
+  )
+);
+
+// function to get a map of how many streams of each type are present
+export const getTypeCountsMap = (streams: IffmpegCommandStream[]): { [key: string]: number } => (
+  streams
+    .reduce((counts: { [key: string]: number }, stream: IffmpegCommandStream) => {
+      // eslint-disable-next-line no-param-reassign
+      counts[stream.codec_type] = (counts[stream.codec_type] ?? 0) + 1;
+      return counts;
+    }, {})
+);
 
 // map of resolution widths to standard resolution name
-const resolutionMap: {
-  [key: number]: string
-} = {
+const resolutionMap: { [key: number]: string } = {
   640: '480p',
   1280: '720p',
   1920: '1080p',
@@ -40,12 +58,83 @@ export const getBitrate = (stream: IffmpegCommandStream): string => {
   return '';
 };
 
-// function to get the language from a stream
-export const getLanguage = (stream: IffmpegCommandStream): string => {
-  if (!stream.tags?.language || stream.tags.language === 'und') {
-    return '';
+// map of channel count to common user-friendly name
+const channelMap: { [key: string]: string } = {
+  8: '7.1',
+  7: '6.1',
+  6: '5.1',
+  2: '2.0',
+  1: '1.0',
+};
+
+// function to get the user-friendly channel layout name from a stream
+export const getChannelsName = (stream: IffmpegCommandStream): string => channelMap[Number(stream.channels)];
+
+// function to convert user-friendly channel layout to a number
+export const getChannelCount = (channelName: string): number => {
+  if (!channelName) {
+    return 0;
+  }
+  return channelName.split('.')
+    .map(Number)
+    .reduce((last, current) => last + current);
+};
+
+// map of audio codecs to encoders
+const encoderMap: { [key: string]: string } = {
+  aac: 'aac',
+  ac3: 'ac3',
+  eac3: 'eac3',
+  dts: 'dca',
+  flac: 'flac',
+  opus: 'libopus',
+  mp2: 'mp2',
+  mp3: 'libmp3lame',
+  truehd: 'truehd',
+};
+
+// function to get the audio encoder for a codec
+export const getEncoder = (codec: string): string => encoderMap[String(codec)];
+
+// function to check if a language is undefined
+export const isLanguageUndefined = (stream: IffmpegCommandStream): boolean => (
+  !stream.tags?.language || stream.tags.language === 'und'
+);
+
+// function to get the language from a stream with optional support for default value
+export const getLanguageTag = (stream: IffmpegCommandStream, defaultLang?: string): string => {
+  if (isLanguageUndefined(stream)) {
+    return defaultLang ?? '';
   }
   return String(stream?.tags?.language);
+};
+
+// map language tags to language name
+const languageMap: { [key: string]: string } = {
+  eng: 'English',
+};
+
+// function to get language name from tag
+export const getLanguageName = (langTag: string): string => (String(languageMap[langTag]) ?? '');
+
+// map of language tag alternates
+const languageTagAlternates: { [key: string]: string[] } = {
+  eng: ['eng', 'en', 'en-us', 'en-gb', 'en-ca', 'en-au'],
+};
+
+// function to check if a stream language matches one of a list of tags with support for defaulting undefined
+export const languageMatches = (
+  stream: IffmpegCommandStream, languageTags: string[], defaultLanguage?: string,
+): boolean => {
+  // grab the language value with support for optional default
+  const streamLanguage = getLanguageTag(stream, defaultLanguage);
+  // create an array with all input tags and all configured alternates
+  const allValidTags = [...languageTags, ...languageTags.flatMap((tag: string) => (languageTagAlternates[tag]))]
+    .filter((item) => item)
+    .filter((item: string, index: number, items: string[]) => items.indexOf(item) === index);
+  // if unable to determine stream language assume no match
+  // if able to check for tag equivalents in our map, if none configured check for equality against input
+  return Boolean(streamLanguage && allValidTags.includes(streamLanguage));
 };
 
 // function to determine if a stream is commentary
@@ -85,7 +174,7 @@ export const getTitle = (stream: IffmpegCommandStream): string => {
         getBitrate(stream),
         ((stream.sample_rate) ? `${Math.floor(Number(stream.sample_rate) / 1000)}kHz` : undefined),
         ((stream.bits_per_raw_sample) ? `${stream.bits_per_raw_sample}-bit` : undefined),
-        getLanguage(stream),
+        getLanguageName(getLanguageTag(stream)),
         (audioFlags.length > 0) ? `(${audioFlags.join(', ')})` : undefined,
       ].filter((item) => item !== undefined)
         .join(' ');
@@ -97,7 +186,7 @@ export const getTitle = (stream: IffmpegCommandStream): string => {
         (isCommentary(stream) ? 'commentary' : undefined),
       ].filter((item) => item);
       return [
-        getLanguage(stream),
+        getLanguageName(getLanguageTag(stream)),
         (subtitleFlags.length > 0) ? `(${subtitleFlags.join(', ')})` : undefined,
       ].filter((item) => item)
         .join(' ');

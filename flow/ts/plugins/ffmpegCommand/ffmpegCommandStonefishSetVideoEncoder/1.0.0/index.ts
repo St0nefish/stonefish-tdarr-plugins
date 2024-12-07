@@ -12,13 +12,16 @@ const details = (): IpluginDetails => ({
   name: 'Set Video Encoder',
   description:
     `
-     Configure the video encoder settings \\n
-     \\n
-     See the following resources for more details on what these settings do: \\n
-     - https://trac.ffmpeg.org/wiki/Encode/H.264 \\n
-     - https://trac.ffmpeg.org/wiki/Encode/H.265 \\n
-     - https://trac.ffmpeg.org/wiki/Encode/AV1 \\n
-     \\n
+     Configure the video encoder settings 
+     \n\n
+     See the following resources for more details on what these settings do:
+     \n\n
+     - https://trac.ffmpeg.org/wiki/Encode/H.264
+     \n\n
+     - https://trac.ffmpeg.org/wiki/Encode/H.265
+     \n\n
+     - https://trac.ffmpeg.org/wiki/Encode/AV1
+     \n\n
      Credit to the default ffmpegCommandSetVideoEncoder plugin. I forked it to add options to control the title 
      behavior and change default values to match my personal preference.
      `,
@@ -190,11 +193,13 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Specify how to handle the title of the resulting stream \\n
-        \\n
-        - default : defer to the default ffmpeg behavior  \\n
-        - clear : clear the title value \\n
-        - generate : generate a title from {codec} \\n
+        Specify how to handle the title of the resulting stream
+        \\n\\n
+        - default : defer to the default ffmpeg behavior
+        \\n\\n
+        - clear : clear the title value
+        \\n\\n
+        - generate : generate a title from {codec}
         `,
     },
   ],

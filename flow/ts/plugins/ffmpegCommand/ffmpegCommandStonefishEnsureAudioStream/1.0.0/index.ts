@@ -6,19 +6,25 @@ import {
   IpluginOutputArgs,
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import { getFfType } from '../../../../FlowHelpers/1.0.0/fileUtils';
+import {
+  getChannelCount,
+  getEncoder,
+  isLanguageUndefined,
+  languageMatches,
+} from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
 
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 const details = (): IpluginDetails => ({
   name: 'Ensure Audio Stream',
   description:
     `
-    Ensure that the file has an audio stream matching the configured values \\n
-    \\n
+    Ensure that the file has an audio stream matching the configured values
+    \\n\\n
     If a stream already exists matching the configured codec and channel count then nothing will happen. If no stream 
     matches these then one will be created using default ffmpeg settings, or if specified the optional bitrate and/or 
     samplerate values. This can be used to ensure there is an audio stream with maximum compatibility for your typical
-    players. \\n
-    \\n
+    players.
+    \\n\\n
     Credit to the standard ffmpegCommandEnsureAudioStream plugin for the starting code. I tweaked some things add a few
     additional options to control the title of the resulting stream and ensure I never accidentally used a commentary or
     descriptive stream as the encoding source.
@@ -81,8 +87,8 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Enter the desired audio language tag \\n
-        \\n
+        Enter the desired audio language tag 
+        \\n\\n
         This specifies the language tag of the desired audio stream. If at least one stream is found matching this 
         language then it will be used as the source to generate a new track matching the desired codec and channels. 
         If no audio stream is found matching this language tag then this plugin will fail.
@@ -177,12 +183,14 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Stream Title Behavior \\n
-        \\n
-        Choose how to handle the title tag for the generated stream (if required): \\n
+        Stream Title Behavior
+        \\n\\n
+        Choose how to handle the title tag for the generated stream (if required):
+        \\n\\n
         - clear : Leave the stream title empty. This can be useful if you are using another plugin later to generate 
           titles. Tagging after the encode completes can make it easier to include some desired metadata in the 
-          title. \\n
+          title. 
+        \\n\\n
         - generate : Generate a title for this stream using input encode settings. Default pattern is {codec channels 
           language}
         `,
@@ -218,25 +226,15 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   if (audioStreams.length === 0) {
     throw new Error('No audio streams found in input file');
   }
-  // map of alternate language tags
-  const languageTags: { [key: string]: string[] } = {
-    eng: ['eng', 'en'],
-  };
-  // function to determine of a stream matches the input language tag
-  const languageMatch = (stream: IffmpegCommandStream, langTag: string): boolean => (
-    Boolean(stream.tags?.language
-      && ((languageTags[langTag] && languageTags[langTag].includes(stream.tags.language.toLowerCase()))
-        || stream.tags.language.toLowerCase() === langTag))
-  );
   // log stream to create
   args.jobLog(`attempting to create audio stream [${targetCodec} ${targetChannels} ${targetLang}] `);
   // filter streams to only include audio streams with the specified language tag
-  let sourceStreams = audioStreams.filter((stream) => languageMatch(stream, targetLang));
+  let sourceStreams = audioStreams.filter((stream) => languageMatches(stream, [targetLang]));
   // if no streams exist with desired language try again with undefined language
   if (sourceStreams.length === 0) {
     args.jobLog(`No streams with language tag ${targetLang} found. Retrying with undefined `);
     sourceStreams = audioStreams.filter((stream: IffmpegCommandStream) => (
-      stream.tags === undefined || stream.tags.language === undefined || stream.tags.language.toLowerCase() === 'und'
+      isLanguageUndefined(stream)
     ));
   }
   // if still unable to find a source stream then fail
@@ -261,15 +259,6 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     // otherwise return second - it is either higher channel count or higher bitrate
     return second;
   };
-  // function to convert channels title to number
-  const getChannelCount = (channelName: string): number => {
-    if (!channelName) {
-      return 0;
-    }
-    return channelName.split('.')
-      .map(Number)
-      .reduce((last, current) => last + current);
-  };
   // locate the best available source stream
   const sourceStream = sourceStreams.reduce(getBestStream);
   // if requested stream has more channels than available in best source default to source channels
@@ -290,7 +279,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     + ` [lang:${sourceStream.tags?.language}, codec:${sourceStream.codec_name},`
     + ` channels:${sourceStream.channels}, bitrate:${sourceStream.bit_rate}] `);
   // if desired stream already exists then exit
-  if (audioStreams.filter((stream) => !!(languageMatch(stream, targetLang)
+  if (audioStreams.filter((stream) => (languageMatches(stream, [targetLang])
     && stream.codec_name === targetCodec
     && stream.channels === generateChannels)).length > 0) {
     args.jobLog(`File already has stream matching: [${targetCodec}, ${targetChannels}, ${targetLang}] `);
@@ -303,22 +292,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     // add to the end of existing streams
     streamCopy.index = streams.length;
     // set encoder and channels
-    // map of audio codecs to encoders
-    const encoderMap: {
-      [key: string]: string
-    } = {
-      aac: 'aac',
-      ac3: 'ac3',
-      eac3: 'eac3',
-      dts: 'dca',
-      flac: 'flac',
-      opus: 'libopus',
-      mp2: 'mp2',
-      mp3: 'libmp3lame',
-      truehd: 'truehd',
-    };
-    // basic output settings
-    streamCopy.outputArgs.push('-c:{outputIndex}', encoderMap[targetCodec]);
+    streamCopy.outputArgs.push('-c:{outputIndex}', getEncoder(targetCodec));
     streamCopy.outputArgs.push('-ac', `${generateChannels}`);
     // configure bitrate if enabled
     if (bitrate) {

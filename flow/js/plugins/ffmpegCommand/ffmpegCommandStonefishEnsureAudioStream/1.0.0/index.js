@@ -3,10 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.plugin = exports.details = void 0;
 var flowUtils_1 = require("../../../../FlowHelpers/1.0.0/interfaces/flowUtils");
 var fileUtils_1 = require("../../../../FlowHelpers/1.0.0/fileUtils");
+var metadataUtils_1 = require("../../../../FlowHelpers/1.0.0/local/metadataUtils");
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 var details = function () { return ({
     name: 'Ensure Audio Stream',
-    description: "\n    Ensure that the file has an audio stream matching the configured values \\n\n    \\n\n    If a stream already exists matching the configured codec and channel count then nothing will happen. If no stream \n    matches these then one will be created using default ffmpeg settings, or if specified the optional bitrate and/or \n    samplerate values. This can be used to ensure there is an audio stream with maximum compatibility for your typical\n    players. \\n\n    \\n\n    Credit to the standard ffmpegCommandEnsureAudioStream plugin for the starting code. I tweaked some things add a few\n    additional options to control the title of the resulting stream and ensure I never accidentally used a commentary or\n    descriptive stream as the encoding source.\n    ",
+    description: "\n    Ensure that the file has an audio stream matching the configured values\n    \\n\\n\n    If a stream already exists matching the configured codec and channel count then nothing will happen. If no stream \n    matches these then one will be created using default ffmpeg settings, or if specified the optional bitrate and/or \n    samplerate values. This can be used to ensure there is an audio stream with maximum compatibility for your typical\n    players.\n    \\n\\n\n    Credit to the standard ffmpegCommandEnsureAudioStream plugin for the starting code. I tweaked some things add a few\n    additional options to control the title of the resulting stream and ensure I never accidentally used a commentary or\n    descriptive stream as the encoding source.\n    ",
     style: {
         borderColor: '#6efefc',
     },
@@ -62,7 +63,7 @@ var details = function () { return ({
             inputUI: {
                 type: 'text',
             },
-            tooltip: "\n        Enter the desired audio language tag \\n\n        \\n\n        This specifies the language tag of the desired audio stream. If at least one stream is found matching this \n        language then it will be used as the source to generate a new track matching the desired codec and channels. \n        If no audio stream is found matching this language tag then this plugin will fail.\n        ",
+            tooltip: "\n        Enter the desired audio language tag \n        \\n\\n\n        This specifies the language tag of the desired audio stream. If at least one stream is found matching this \n        language then it will be used as the source to generate a new track matching the desired codec and channels. \n        If no audio stream is found matching this language tag then this plugin will fail.\n        ",
         },
         {
             label: 'Enable Bitrate',
@@ -147,7 +148,7 @@ var details = function () { return ({
                     'generate',
                 ],
             },
-            tooltip: "\n        Stream Title Behavior \\n\n        \\n\n        Choose how to handle the title tag for the generated stream (if required): \\n\n        - clear : Leave the stream title empty. This can be useful if you are using another plugin later to generate \n          titles. Tagging after the encode completes can make it easier to include some desired metadata in the \n          title. \\n\n        - generate : Generate a title for this stream using input encode settings. Default pattern is {codec channels \n          language}\n        ",
+            tooltip: "\n        Stream Title Behavior\n        \\n\\n\n        Choose how to handle the title tag for the generated stream (if required):\n        \\n\\n\n        - clear : Leave the stream title empty. This can be useful if you are using another plugin later to generate \n          titles. Tagging after the encode completes can make it easier to include some desired metadata in the \n          title. \n        \\n\\n\n        - generate : Generate a title for this stream using input encode settings. Default pattern is {codec channels \n          language}\n        ",
         },
     ],
     outputs: [
@@ -181,25 +182,14 @@ var plugin = function (args) {
     if (audioStreams.length === 0) {
         throw new Error('No audio streams found in input file');
     }
-    // map of alternate language tags
-    var languageTags = {
-        eng: ['eng', 'en'],
-    };
-    // function to determine of a stream matches the input language tag
-    var languageMatch = function (stream, langTag) {
-        var _a;
-        return (Boolean(((_a = stream.tags) === null || _a === void 0 ? void 0 : _a.language)
-            && ((languageTags[langTag] && languageTags[langTag].includes(stream.tags.language.toLowerCase()))
-                || stream.tags.language.toLowerCase() === langTag)));
-    };
     // log stream to create
     args.jobLog("attempting to create audio stream [".concat(targetCodec, " ").concat(targetChannels, " ").concat(targetLang, "] "));
     // filter streams to only include audio streams with the specified language tag
-    var sourceStreams = audioStreams.filter(function (stream) { return languageMatch(stream, targetLang); });
+    var sourceStreams = audioStreams.filter(function (stream) { return (0, metadataUtils_1.languageMatches)(stream, [targetLang]); });
     // if no streams exist with desired language try again with undefined language
     if (sourceStreams.length === 0) {
         args.jobLog("No streams with language tag ".concat(targetLang, " found. Retrying with undefined "));
-        sourceStreams = audioStreams.filter(function (stream) { return (stream.tags === undefined || stream.tags.language === undefined || stream.tags.language.toLowerCase() === 'und'); });
+        sourceStreams = audioStreams.filter(function (stream) { return ((0, metadataUtils_1.isLanguageUndefined)(stream)); });
     }
     // if still unable to find a source stream then fail
     if (sourceStreams.length < 1) {
@@ -223,20 +213,11 @@ var plugin = function (args) {
         // otherwise return second - it is either higher channel count or higher bitrate
         return second;
     };
-    // function to convert channels title to number
-    var getChannelCount = function (channelName) {
-        if (!channelName) {
-            return 0;
-        }
-        return channelName.split('.')
-            .map(Number)
-            .reduce(function (last, current) { return last + current; });
-    };
     // locate the best available source stream
     var sourceStream = sourceStreams.reduce(getBestStream);
     // if requested stream has more channels than available in best source default to source channels
     var highestChannelCount = Number(sourceStream.channels);
-    var wantedChannelCount = getChannelCount(targetChannels);
+    var wantedChannelCount = (0, metadataUtils_1.getChannelCount)(targetChannels);
     var generateChannels = 0;
     if (wantedChannelCount <= highestChannelCount) {
         generateChannels = wantedChannelCount;
@@ -253,7 +234,7 @@ var plugin = function (args) {
         + " [lang:".concat((_a = sourceStream.tags) === null || _a === void 0 ? void 0 : _a.language, ", codec:").concat(sourceStream.codec_name, ",")
         + " channels:".concat(sourceStream.channels, ", bitrate:").concat(sourceStream.bit_rate, "] "));
     // if desired stream already exists then exit
-    if (audioStreams.filter(function (stream) { return !!(languageMatch(stream, targetLang)
+    if (audioStreams.filter(function (stream) { return ((0, metadataUtils_1.languageMatches)(stream, [targetLang])
         && stream.codec_name === targetCodec
         && stream.channels === generateChannels); }).length > 0) {
         args.jobLog("File already has stream matching: [".concat(targetCodec, ", ").concat(targetChannels, ", ").concat(targetLang, "] "));
@@ -267,20 +248,7 @@ var plugin = function (args) {
         // add to the end of existing streams
         streamCopy.index = streams.length;
         // set encoder and channels
-        // map of audio codecs to encoders
-        var encoderMap = {
-            aac: 'aac',
-            ac3: 'ac3',
-            eac3: 'eac3',
-            dts: 'dca',
-            flac: 'flac',
-            opus: 'libopus',
-            mp2: 'mp2',
-            mp3: 'libmp3lame',
-            truehd: 'truehd',
-        };
-        // basic output settings
-        streamCopy.outputArgs.push('-c:{outputIndex}', encoderMap[targetCodec]);
+        streamCopy.outputArgs.push('-c:{outputIndex}', (0, metadataUtils_1.getEncoder)(targetCodec));
         streamCopy.outputArgs.push('-ac', "".concat(generateChannels));
         // configure bitrate if enabled
         if (bitrate) {

@@ -1,17 +1,53 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getStreamSort = exports.getTitle = exports.isDescriptive = exports.isCommentary = exports.getLanguage = exports.getBitrate = exports.getResolutionName = exports.getChannelsName = void 0;
-// map of channel count to common user-friendly name
-var channelMap = {
-    8: '7.1',
-    7: '6.1',
-    6: '5.1',
-    2: '2.0',
-    1: '1.0',
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
 };
-// function to get the user-friendly channel layout name from a stream
-var getChannelsName = function (stream) { return channelMap[Number(stream.channels)]; };
-exports.getChannelsName = getChannelsName;
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getStreamSort = exports.getTitle = exports.isDescriptive = exports.isCommentary = exports.languageMatches = exports.getLanguageName = exports.getLanguageTag = exports.isLanguageUndefined = exports.getEncoder = exports.getChannelCount = exports.getChannelsName = exports.getBitrate = exports.getResolutionName = exports.getTypeCountsMap = exports.getStreamsByType = exports.generateTypeIndexes = void 0;
+// function to set a typeIndex field on each stream in the input array
+var generateTypeIndexes = function (streams) { return (streams.map(function (stream) { return stream.codec_type; })
+    .filter(function (value, index, array) { return array.indexOf(value) === index; })
+    .forEach(function (codecType) {
+    // for each unique codec type set type index
+    streams.filter(function (stream) { return stream.codec_type === codecType; })
+        .forEach(function (stream, index) {
+        // eslint-disable-next-line no-param-reassign
+        stream.typeIndex = index;
+    });
+})); };
+exports.generateTypeIndexes = generateTypeIndexes;
+// function to get a map of streams keyed on codec type
+var getStreamsByType = function (streams) { return (streams.reduce(function (map, stream) {
+    var _a;
+    return (__assign(__assign({}, map), (_a = {}, _a[stream.codec_type] = __spreadArray(__spreadArray([], (map[stream.codec_type] || []), true), [stream], false), _a)));
+}, {})); };
+exports.getStreamsByType = getStreamsByType;
+// function to get a map of how many streams of each type are present
+var getTypeCountsMap = function (streams) { return (streams
+    .reduce(function (counts, stream) {
+    var _a;
+    // eslint-disable-next-line no-param-reassign
+    counts[stream.codec_type] = ((_a = counts[stream.codec_type]) !== null && _a !== void 0 ? _a : 0) + 1;
+    return counts;
+}, {})); };
+exports.getTypeCountsMap = getTypeCountsMap;
 // map of resolution widths to standard resolution name
 var resolutionMap = {
     640: '480p',
@@ -36,15 +72,80 @@ var getBitrate = function (stream) {
     return '';
 };
 exports.getBitrate = getBitrate;
-// function to get the language from a stream
-var getLanguage = function (stream) {
-    var _a, _b;
-    if (!((_a = stream.tags) === null || _a === void 0 ? void 0 : _a.language) || stream.tags.language === 'und') {
-        return '';
-    }
-    return String((_b = stream === null || stream === void 0 ? void 0 : stream.tags) === null || _b === void 0 ? void 0 : _b.language);
+// map of channel count to common user-friendly name
+var channelMap = {
+    8: '7.1',
+    7: '6.1',
+    6: '5.1',
+    2: '2.0',
+    1: '1.0',
 };
-exports.getLanguage = getLanguage;
+// function to get the user-friendly channel layout name from a stream
+var getChannelsName = function (stream) { return channelMap[Number(stream.channels)]; };
+exports.getChannelsName = getChannelsName;
+// function to convert user-friendly channel layout to a number
+var getChannelCount = function (channelName) {
+    if (!channelName) {
+        return 0;
+    }
+    return channelName.split('.')
+        .map(Number)
+        .reduce(function (last, current) { return last + current; });
+};
+exports.getChannelCount = getChannelCount;
+// map of audio codecs to encoders
+var encoderMap = {
+    aac: 'aac',
+    ac3: 'ac3',
+    eac3: 'eac3',
+    dts: 'dca',
+    flac: 'flac',
+    opus: 'libopus',
+    mp2: 'mp2',
+    mp3: 'libmp3lame',
+    truehd: 'truehd',
+};
+// function to get the audio encoder for a codec
+var getEncoder = function (codec) { return encoderMap[String(codec)]; };
+exports.getEncoder = getEncoder;
+// function to check if a language is undefined
+var isLanguageUndefined = function (stream) {
+    var _a;
+    return (!((_a = stream.tags) === null || _a === void 0 ? void 0 : _a.language) || stream.tags.language === 'und');
+};
+exports.isLanguageUndefined = isLanguageUndefined;
+// function to get the language from a stream with optional support for default value
+var getLanguageTag = function (stream, defaultLang) {
+    var _a;
+    if ((0, exports.isLanguageUndefined)(stream)) {
+        return defaultLang !== null && defaultLang !== void 0 ? defaultLang : '';
+    }
+    return String((_a = stream === null || stream === void 0 ? void 0 : stream.tags) === null || _a === void 0 ? void 0 : _a.language);
+};
+exports.getLanguageTag = getLanguageTag;
+// map language tags to language name
+var languageMap = {
+    eng: 'English',
+};
+// function to get language name from tag
+var getLanguageName = function (langTag) { var _a; return ((_a = String(languageMap[langTag])) !== null && _a !== void 0 ? _a : ''); };
+exports.getLanguageName = getLanguageName;
+// map of language tag alternates
+var languageTagAlternates = {
+    eng: ['eng', 'en', 'en-us', 'en-gb', 'en-ca', 'en-au'],
+};
+// function to check if a stream language matches one of a list of tags with support for defaulting undefined
+var languageMatches = function (stream, languageTags, defaultLanguage) {
+    // grab the language value with support for optional default
+    var streamLanguage = (0, exports.getLanguageTag)(stream, defaultLanguage);
+    // create an array with all input tags and all configured alternates
+    var allValidTags = __spreadArray(__spreadArray([], languageTags, true), languageTags.flatMap(function (tag) { return (languageTagAlternates[tag]); }), true).filter(function (item) { return item; })
+        .filter(function (item, index, items) { return items.indexOf(item) === index; });
+    // if unable to determine stream language assume no match
+    // if able to check for tag equivalents in our map, if none configured check for equality against input
+    return Boolean(streamLanguage && allValidTags.includes(streamLanguage));
+};
+exports.languageMatches = languageMatches;
 // function to determine if a stream is commentary
 var isCommentary = function (stream) {
     var _a, _b, _c, _d;
@@ -87,7 +188,7 @@ var getTitle = function (stream) {
                 (0, exports.getBitrate)(stream),
                 ((stream.sample_rate) ? "".concat(Math.floor(Number(stream.sample_rate) / 1000), "kHz") : undefined),
                 ((stream.bits_per_raw_sample) ? "".concat(stream.bits_per_raw_sample, "-bit") : undefined),
-                (0, exports.getLanguage)(stream),
+                (0, exports.getLanguageName)((0, exports.getLanguageTag)(stream)),
                 (audioFlags.length > 0) ? "(".concat(audioFlags.join(', '), ")") : undefined,
             ].filter(function (item) { return item !== undefined; })
                 .join(' ');
@@ -99,7 +200,7 @@ var getTitle = function (stream) {
                 ((0, exports.isCommentary)(stream) ? 'commentary' : undefined),
             ].filter(function (item) { return item; });
             return [
-                (0, exports.getLanguage)(stream),
+                (0, exports.getLanguageName)((0, exports.getLanguageTag)(stream)),
                 (subtitleFlags.length > 0) ? "(".concat(subtitleFlags.join(', '), ")") : undefined,
             ].filter(function (item) { return item; })
                 .join(' ');
