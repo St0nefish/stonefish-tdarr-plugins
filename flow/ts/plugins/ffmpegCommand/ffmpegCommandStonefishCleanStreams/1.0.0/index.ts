@@ -420,7 +420,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     switch (codecType) {
       case 'video':
         if (removeVideo) {
-          if (!streamMatchesLanguage(stream, keepLanguages)) {
+          if (!streamMatchesLanguage(stream, keepLanguages, defaultLanguage)) {
             // language is unwanted
             args.jobLog(`flagging stream s:${stream.index}:a:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + `language [${stream.tags?.language}] is unwanted`);
@@ -432,7 +432,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
         // determine if we should remove this audio stream
         if (removeAudio) {
           // audio cleanup is enabled
-          if (!streamMatchesLanguage(stream, keepLanguages)) {
+          if (!streamMatchesLanguage(stream, keepLanguages, defaultLanguage)) {
             // language is unwanted
             args.jobLog(`flagging stream s:${stream.index}:a:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + `language [${stream.tags?.language}] is unwanted`);
@@ -453,7 +453,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
       case 'subtitle':
         if (removeSubtitles) {
           // subtitle cleanup is enabled
-          if (!streamMatchesLanguage(stream, keepLanguages)) {
+          if (!streamMatchesLanguage(stream, keepLanguages, defaultLanguage)) {
             // language is unwanted
             args.jobLog(`flagging stream s:${stream.index}:s:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + `language [${stream.tags?.language}] is unwanted`);

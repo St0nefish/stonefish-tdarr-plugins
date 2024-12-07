@@ -332,7 +332,7 @@ var plugin = function (args) {
         switch (codecType) {
             case 'video':
                 if (removeVideo) {
-                    if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages)) {
+                    if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages, defaultLanguage)) {
                         // language is unwanted
                         args.jobLog("flagging stream s:".concat(stream.index, ":a:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
                             + "language [".concat((_a = stream.tags) === null || _a === void 0 ? void 0 : _a.language, "] is unwanted"));
@@ -344,7 +344,7 @@ var plugin = function (args) {
                 // determine if we should remove this audio stream
                 if (removeAudio) {
                     // audio cleanup is enabled
-                    if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages)) {
+                    if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages, defaultLanguage)) {
                         // language is unwanted
                         args.jobLog("flagging stream s:".concat(stream.index, ":a:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
                             + "language [".concat((_b = stream.tags) === null || _b === void 0 ? void 0 : _b.language, "] is unwanted"));
@@ -367,7 +367,7 @@ var plugin = function (args) {
             case 'subtitle':
                 if (removeSubtitles) {
                     // subtitle cleanup is enabled
-                    if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages)) {
+                    if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages, defaultLanguage)) {
                         // language is unwanted
                         args.jobLog("flagging stream s:".concat(stream.index, ":s:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
                             + "language [".concat((_c = stream.tags) === null || _c === void 0 ? void 0 : _c.language, "] is unwanted"));
