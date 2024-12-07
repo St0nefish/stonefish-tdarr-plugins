@@ -75,7 +75,7 @@ const details = (): IpluginDetails => ({
       label: 'Language',
       name: 'language',
       type: 'string',
-      defaultValue: 'en',
+      defaultValue: 'eng',
       inputUI: {
         type: 'text',
       },
@@ -218,9 +218,15 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   if (audioStreams.length === 0) {
     throw new Error('No audio streams found in input file');
   }
+  // map of alternate language tags
+  const languageTags: { [key: string]: string[] } = {
+    eng: ['eng', 'en'],
+  };
   // function to determine of a stream matches the input language tag
-  const languageMatch = (stream: IffmpegCommandStream, langTag: string) => (
-    stream?.tags?.language && stream.tags.language.toLowerCase() === langTag
+  const languageMatch = (stream: IffmpegCommandStream, langTag: string): boolean => (
+    Boolean(stream.tags?.language
+      && ((languageTags[langTag] && languageTags[langTag].includes(stream.tags.language.toLowerCase()))
+        || stream.tags.language.toLowerCase() === langTag))
   );
   // log stream to create
   args.jobLog(`attempting to create audio stream [${targetCodec} ${targetChannels} ${targetLang}] `);

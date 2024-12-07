@@ -74,7 +74,7 @@ var details = function () { return ({
             inputUI: {
                 type: 'text',
             },
-            tooltip: "\n        Specify the full path to a file containing a line-feed-delimited list of strings. Each entry in the file  will \n        be evaluated against the current file name.\n        ",
+            tooltip: "\n        Specify the full path to a file containing a line-feed-delimited list of strings \\n\n        \\n\n        Each entry in the file will be evaluated against the current file name using the operation specified below \\n\n        ",
         },
         {
             label: 'Operation',
@@ -90,7 +90,7 @@ var details = function () { return ({
                     'endsWith',
                 ],
             },
-            tooltip: "\n        The operation to apply against the file name for each line in the input file. \n        ",
+            tooltip: 'The operation to apply against the file name for each line in the input file.',
         },
     ],
     outputs: [

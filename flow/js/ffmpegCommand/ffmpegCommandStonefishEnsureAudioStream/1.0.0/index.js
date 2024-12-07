@@ -58,7 +58,7 @@ var details = function () { return ({
             label: 'Language',
             name: 'language',
             type: 'string',
-            defaultValue: 'en',
+            defaultValue: 'eng',
             inputUI: {
                 type: 'text',
             },
@@ -181,10 +181,16 @@ var plugin = function (args) {
     if (audioStreams.length === 0) {
         throw new Error('No audio streams found in input file');
     }
+    // map of alternate language tags
+    var languageTags = {
+        eng: ['eng', 'en'],
+    };
     // function to determine of a stream matches the input language tag
     var languageMatch = function (stream, langTag) {
         var _a;
-        return (((_a = stream === null || stream === void 0 ? void 0 : stream.tags) === null || _a === void 0 ? void 0 : _a.language) && stream.tags.language.toLowerCase() === langTag);
+        return (Boolean(((_a = stream.tags) === null || _a === void 0 ? void 0 : _a.language)
+            && ((languageTags[langTag] && languageTags[langTag].includes(stream.tags.language.toLowerCase()))
+                || stream.tags.language.toLowerCase() === langTag)));
     };
     // log stream to create
     args.jobLog("attempting to create audio stream [".concat(targetCodec, " ").concat(targetChannels, " ").concat(targetLang, "] "));

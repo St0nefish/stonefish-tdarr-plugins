@@ -43,8 +43,9 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Specify the full path to a file containing a line-feed-delimited list of strings. Each entry in the file  will 
-        be evaluated against the current file name.
+        Specify the full path to a file containing a line-feed-delimited list of strings \\n
+        \\n
+        Each entry in the file will be evaluated against the current file name using the operation specified below \\n
         `,
     },
     {
@@ -61,10 +62,7 @@ const details = (): IpluginDetails => ({
           'endsWith',
         ],
       },
-      tooltip:
-        `
-        The operation to apply against the file name for each line in the input file. 
-        `,
+      tooltip: 'The operation to apply against the file name for each line in the input file.',
     },
   ],
   outputs: [
