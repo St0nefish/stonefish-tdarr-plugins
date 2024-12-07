@@ -6,8 +6,8 @@ import {
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import {
   getTitle,
-  isCommentary,
-  isDescriptive,
+  isStreamCommentary,
+  isStreamDescriptive,
   isLanguageUndefined,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
 
@@ -179,9 +179,9 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
       }
       // check if we should be force regenerating titles or if title is missing
       if (!stream.tags?.title // title is missing
-        || (forceTitle && !isCommentary(stream) && !isDescriptive(stream)) // force for not commentary/descriptive
-        || (forceTitleCommentary && isCommentary(stream)) // force for commentary
-        || (forceTitleDescriptive && isDescriptive(stream)) // force for descriptive
+        || (forceTitle && !isStreamCommentary(stream) && !isStreamDescriptive(stream)) // force for not commentary/descriptive
+        || (forceTitleCommentary && isStreamCommentary(stream)) // force for commentary
+        || (forceTitleDescriptive && isStreamDescriptive(stream)) // force for descriptive
       ) {
         const title = getTitle(stream);
         args.jobLog(`found untagged [${codecType}] stream - setting title to [${title}]`);
@@ -197,7 +197,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     // add disposition flags for audio and subtitle streams if enabled
     if (setDisposition && ['audio', 'subtitle'].includes(codecType)) {
       // handle commentary streams
-      if (isCommentary(stream) && !stream.disposition?.comment) {
+      if (isStreamCommentary(stream) && !stream.disposition?.comment) {
         args.jobLog(`found [${codecType}] stream that appears to be commentary without the disposition flag set`);
         // set shouldProcess
         args.variables.ffmpegCommand.shouldProcess = true;
@@ -208,7 +208,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
         stream.outputArgs.push(`-disposition:${Array.from(codecType)[0]}:{outputTypeIndex}`, 'comment');
       }
       // handle descriptive streams
-      if (isDescriptive(stream) && !stream.disposition?.descriptions) {
+      if (isStreamDescriptive(stream) && !stream.disposition?.descriptions) {
         args.jobLog(`found [${codecType}] stream that appears to be descriptive without the disposition flag set`);
         // set shouldProcess
         args.variables.ffmpegCommand.shouldProcess = true;

@@ -185,7 +185,7 @@ var plugin = function (args) {
     // log stream to create
     args.jobLog("attempting to create audio stream [".concat(targetCodec, " ").concat(targetChannels, " ").concat(targetLang, "] "));
     // filter streams to only include audio streams with the specified language tag
-    var sourceStreams = audioStreams.filter(function (stream) { return (0, metadataUtils_1.languageMatches)(stream, [targetLang]); });
+    var sourceStreams = audioStreams.filter(function (stream) { return (0, metadataUtils_1.streamMatchesLanguage)(stream, [targetLang]); });
     // if no streams exist with desired language try again with undefined language
     if (sourceStreams.length === 0) {
         args.jobLog("No streams with language tag ".concat(targetLang, " found. Retrying with undefined "));
@@ -234,7 +234,7 @@ var plugin = function (args) {
         + " [lang:".concat((_a = sourceStream.tags) === null || _a === void 0 ? void 0 : _a.language, ", codec:").concat(sourceStream.codec_name, ",")
         + " channels:".concat(sourceStream.channels, ", bitrate:").concat(sourceStream.bit_rate, "] "));
     // if desired stream already exists then exit
-    if (audioStreams.filter(function (stream) { return ((0, metadataUtils_1.languageMatches)(stream, [targetLang])
+    if (audioStreams.filter(function (stream) { return ((0, metadataUtils_1.streamMatchesLanguage)(stream, [targetLang])
         && stream.codec_name === targetCodec
         && stream.channels === generateChannels); }).length > 0) {
         args.jobLog("File already has stream matching: [".concat(targetCodec, ", ").concat(targetChannels, ", ").concat(targetLang, "] "));

@@ -138,9 +138,9 @@ var plugin = function (args) {
             }
             // check if we should be force regenerating titles or if title is missing
             if (!((_c = stream.tags) === null || _c === void 0 ? void 0 : _c.title) // title is missing
-                || (forceTitle && !(0, metadataUtils_1.isCommentary)(stream) && !(0, metadataUtils_1.isDescriptive)(stream)) // force for not commentary/descriptive
-                || (forceTitleCommentary && (0, metadataUtils_1.isCommentary)(stream)) // force for commentary
-                || (forceTitleDescriptive && (0, metadataUtils_1.isDescriptive)(stream)) // force for descriptive
+                || (forceTitle && !(0, metadataUtils_1.isStreamCommentary)(stream) && !(0, metadataUtils_1.isStreamDescriptive)(stream)) // force for not commentary/descriptive
+                || (forceTitleCommentary && (0, metadataUtils_1.isStreamCommentary)(stream)) // force for commentary
+                || (forceTitleDescriptive && (0, metadataUtils_1.isStreamDescriptive)(stream)) // force for descriptive
             ) {
                 var title = (0, metadataUtils_1.getTitle)(stream);
                 args.jobLog("found untagged [".concat(codecType, "] stream - setting title to [").concat(title, "]"));
@@ -156,7 +156,7 @@ var plugin = function (args) {
         // add disposition flags for audio and subtitle streams if enabled
         if (setDisposition && ['audio', 'subtitle'].includes(codecType)) {
             // handle commentary streams
-            if ((0, metadataUtils_1.isCommentary)(stream) && !((_e = stream.disposition) === null || _e === void 0 ? void 0 : _e.comment)) {
+            if ((0, metadataUtils_1.isStreamCommentary)(stream) && !((_e = stream.disposition) === null || _e === void 0 ? void 0 : _e.comment)) {
                 args.jobLog("found [".concat(codecType, "] stream that appears to be commentary without the disposition flag set"));
                 // set shouldProcess
                 args.variables.ffmpegCommand.shouldProcess = true;
@@ -167,7 +167,7 @@ var plugin = function (args) {
                 stream.outputArgs.push("-disposition:".concat(Array.from(codecType)[0], ":{outputTypeIndex}"), 'comment');
             }
             // handle descriptive streams
-            if ((0, metadataUtils_1.isDescriptive)(stream) && !((_g = stream.disposition) === null || _g === void 0 ? void 0 : _g.descriptions)) {
+            if ((0, metadataUtils_1.isStreamDescriptive)(stream) && !((_g = stream.disposition) === null || _g === void 0 ? void 0 : _g.descriptions)) {
                 args.jobLog("found [".concat(codecType, "] stream that appears to be descriptive without the disposition flag set"));
                 // set shouldProcess
                 args.variables.ffmpegCommand.shouldProcess = true;

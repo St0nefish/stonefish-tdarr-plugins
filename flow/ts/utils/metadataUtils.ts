@@ -123,7 +123,7 @@ const languageTagAlternates: { [key: string]: string[] } = {
 };
 
 // function to check if a stream language matches one of a list of tags with support for defaulting undefined
-export const languageMatches = (
+export const streamMatchesLanguage = (
   stream: IffmpegCommandStream, languageTags: string[], defaultLanguage?: string,
 ): boolean => {
   // grab the language value with support for optional default
@@ -138,12 +138,12 @@ export const languageMatches = (
 };
 
 // function to determine if a stream is commentary
-export const isCommentary = (stream: IffmpegCommandStream): boolean => (
+export const isStreamCommentary = (stream: IffmpegCommandStream): boolean => (
   stream.disposition?.comment
   || stream.tags?.title?.toLowerCase()?.includes('commentary'));
 
 // function to determine if a stream is descriptive
-export const isDescriptive = (stream: IffmpegCommandStream): boolean => (
+export const isStreamDescriptive = (stream: IffmpegCommandStream): boolean => (
   stream.disposition?.descriptions
   || stream.tags?.title?.toLowerCase()?.includes('description')
   || stream.tags?.title?.toLowerCase()?.includes('descriptive')
@@ -165,8 +165,8 @@ export const getTitle = (stream: IffmpegCommandStream): string => {
       const audioFlags = [
         (stream.disposition?.default ? 'default' : undefined),
         (stream.disposition?.dub ? 'dub' : undefined),
-        (isDescriptive(stream) ? 'descriptive' : undefined),
-        (isCommentary(stream) ? 'commentary' : undefined),
+        (isStreamDescriptive(stream) ? 'descriptive' : undefined),
+        (isStreamCommentary(stream) ? 'commentary' : undefined),
       ].filter((item) => item);
       return [
         stream?.codec_name?.toUpperCase(),
@@ -182,8 +182,8 @@ export const getTitle = (stream: IffmpegCommandStream): string => {
       const subtitleFlags = [
         (stream.disposition?.default ? 'default' : undefined),
         (stream.disposition?.forced ? 'forced' : undefined),
-        (isDescriptive(stream) ? 'descriptive' : undefined),
-        (isCommentary(stream) ? 'commentary' : undefined),
+        (isStreamDescriptive(stream) ? 'descriptive' : undefined),
+        (isStreamCommentary(stream) ? 'commentary' : undefined),
       ].filter((item) => item);
       return [
         getLanguageName(getLanguageTag(stream)),
@@ -195,7 +195,10 @@ export const getTitle = (stream: IffmpegCommandStream): string => {
   }
 };
 
-// function to get a function to sort streams. this is generally quality first
+// function to get a function to sort streams
+// general concept here is non-descriptive/non-commentary, commentary, descriptive
+// sub-sorting tends to favor quality first (higher resolution, more channels, higher bitrate)
+// subtitle sorting puts default/forced over others
 export const getStreamSort = (codecType: string): ((s1: IffmpegCommandStream, s2: IffmpegCommandStream) => number) => {
   switch (codecType) {
     case 'video':
@@ -218,11 +221,11 @@ export const getStreamSort = (codecType: string): ((s1: IffmpegCommandStream, s2
       // sort by commentary, descriptive, bitrate (desc)
       return (s1: IffmpegCommandStream, s2: IffmpegCommandStream): number => {
         // regular streams come before commentary/descriptive
-        if (!isCommentary(s1) && (isCommentary(s2) || isDescriptive(s2))) return -1;
-        if ((isCommentary(s1) || isDescriptive(s1)) && !isCommentary(s2)) return 1;
+        if (!isStreamCommentary(s1) && (isStreamCommentary(s2) || isStreamDescriptive(s2))) return -1;
+        if ((isStreamCommentary(s1) || isStreamDescriptive(s1)) && !isStreamCommentary(s2)) return 1;
         // commentary comes before descriptive
-        if (isCommentary(s1) && isDescriptive(s2)) return -1;
-        if (isDescriptive(s1) && isCommentary(s2)) return 1;
+        if (isStreamCommentary(s1) && isStreamDescriptive(s2)) return -1;
+        if (isStreamDescriptive(s1) && isStreamCommentary(s2)) return 1;
         // channels descending
         const c1 = Number(s1?.channels || 0);
         const c2 = Number(s2?.channels || 0);
@@ -240,11 +243,11 @@ export const getStreamSort = (codecType: string): ((s1: IffmpegCommandStream, s2
       // sort by commentary/descriptive/default/forced
       return (s1: IffmpegCommandStream, s2: IffmpegCommandStream): number => {
         // regular streams come before commentary/descriptive
-        if (!isCommentary(s1) && (isCommentary(s2) || isDescriptive(s2))) return -1;
-        if ((isCommentary(s1) || isDescriptive(s1)) && !isCommentary(s2)) return 1;
+        if (!isStreamCommentary(s1) && (isStreamCommentary(s2) || isStreamDescriptive(s2))) return -1;
+        if ((isStreamCommentary(s1) || isStreamDescriptive(s1)) && !isStreamCommentary(s2)) return 1;
         // commentary comes before descriptive
-        if (isCommentary(s1) && isDescriptive(s2)) return -1;
-        if (isDescriptive(s1) && isCommentary(s2)) return 1;
+        if (isStreamCommentary(s1) && isStreamDescriptive(s2)) return -1;
+        if (isStreamDescriptive(s1) && isStreamCommentary(s2)) return 1;
         // forced flag descending
         const f1 = Number(s1?.disposition?.forced || 0);
         const f2 = Number(s2?.disposition?.forced || 0);

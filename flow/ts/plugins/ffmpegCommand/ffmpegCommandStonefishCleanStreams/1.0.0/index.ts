@@ -14,9 +14,9 @@ import {
   getStreamSort,
   getTitle,
   getTypeCountsMap,
-  isCommentary,
-  isDescriptive,
-  languageMatches,
+  isStreamCommentary,
+  isStreamDescriptive,
+  streamMatchesLanguage,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
 
 /* eslint-disable no-param-reassign */
@@ -373,8 +373,8 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     }
     if (codecType === 'audio') {
       const flags = [
-        isCommentary(stream) ? 'commentary' : undefined,
-        isDescriptive(stream) ? 'descriptive' : undefined,
+        isStreamCommentary(stream) ? 'commentary' : undefined,
+        isStreamDescriptive(stream) ? 'descriptive' : undefined,
       ].filter((item) => item);
       return `${getLanguageTag(stream, defaultLanguage)} ${getChannelsName(stream)}`
         + `${flags.length > 0 ? `(${flags.join(', ')})` : ''}`;
@@ -383,8 +383,8 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
       return [
         stream.disposition.default ? 'default' : undefined,
         stream.disposition.forced ? 'forced' : undefined,
-        isCommentary(stream) ? 'commentary' : undefined,
-        isDescriptive(stream) ? 'descriptive' : undefined,
+        isStreamCommentary(stream) ? 'commentary' : undefined,
+        isStreamDescriptive(stream) ? 'descriptive' : undefined,
       ].filter((item) => item).join(', ');
     }
     return `index:${stream.typeIndex}`;
@@ -420,7 +420,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     switch (codecType) {
       case 'video':
         if (removeVideo) {
-          if (languageMatches(stream, keepLanguages)) {
+          if (!streamMatchesLanguage(stream, keepLanguages)) {
             // language is unwanted
             args.jobLog(`flagging stream s:${stream.index}:a:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + `language [${stream.tags?.language}] is unwanted`);
@@ -432,17 +432,17 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
         // determine if we should remove this audio stream
         if (removeAudio) {
           // audio cleanup is enabled
-          if (languageMatches(stream, keepLanguages)) {
+          if (!streamMatchesLanguage(stream, keepLanguages)) {
             // language is unwanted
             args.jobLog(`flagging stream s:${stream.index}:a:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + `language [${stream.tags?.language}] is unwanted`);
             stream.removed = true;
-          } else if (removeCommentaryAudio && isCommentary(stream)) {
+          } else if (removeCommentaryAudio && isStreamCommentary(stream)) {
             // unwanted commentary
             args.jobLog(`flagging stream s:${stream.index}:a:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + 'marked as commentary');
             stream.removed = true;
-          } else if (removeDescriptiveAudio && isDescriptive(stream)) {
+          } else if (removeDescriptiveAudio && isStreamDescriptive(stream)) {
             // unwanted descriptive
             args.jobLog(`flagging stream s:${stream.index}:a:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + 'marked as descriptive');
@@ -453,17 +453,17 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
       case 'subtitle':
         if (removeSubtitles) {
           // subtitle cleanup is enabled
-          if (languageMatches(stream, keepLanguages)) {
+          if (!streamMatchesLanguage(stream, keepLanguages)) {
             // language is unwanted
             args.jobLog(`flagging stream s:${stream.index}:s:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + `language [${stream.tags?.language}] is unwanted`);
             stream.removed = true;
-          } else if (removeCommentarySubs && isCommentary(stream)) {
+          } else if (removeCommentarySubs && isStreamCommentary(stream)) {
             // unwanted commentary
             args.jobLog(`flagging stream s:${stream.index}:s:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + 'marked as commentary');
             stream.removed = true;
-          } else if (removeDescriptiveSubs && isDescriptive(stream)) {
+          } else if (removeDescriptiveSubs && isStreamDescriptive(stream)) {
             // unwanted descriptive
             args.jobLog(`flagging stream s:${stream.index}:s:${stream.typeIndex} [${getTitle(stream)}] for removal - `
               + 'marked as descriptive');
