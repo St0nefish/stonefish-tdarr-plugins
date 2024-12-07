@@ -94,7 +94,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   const variable = String(args.inputs.variable).trim();
   const condition = String(args.inputs.condition);
   const expectedValue = Number(args.inputs.value);
-  args.jobLog(`retrieving value for numeric variable [${JSON.stringify(variable)}]`);
+  args.jobLog(`retrieving value for numeric variable [${variable}]`);
   // function to get the value of a variable reference
   const getVariableValue = (reference: string) => {
     if (reference.startsWith('args.')) {
@@ -124,7 +124,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     }
   };
   // get current value
-  const currentValue = Number(getVariableValue(variable) ?? 0);
+  const currentValue = Number(JSON.stringify(variable) ?? 0);
   // evaluate condition
   args.jobLog(`variable [${variable}] has current value [${currentValue}]`);
   args.jobLog(`checking if [${currentValue}] [${condition}] [${expectedValue}]`);

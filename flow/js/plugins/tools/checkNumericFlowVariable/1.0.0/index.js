@@ -76,7 +76,7 @@ var plugin = function (args) {
     var variable = String(args.inputs.variable).trim();
     var condition = String(args.inputs.condition);
     var expectedValue = Number(args.inputs.value);
-    args.jobLog("retrieving value for numeric variable [".concat(JSON.stringify(variable), "]"));
+    args.jobLog("retrieving value for numeric variable [".concat(variable, "]"));
     // function to get the value of a variable reference
     var getVariableValue = function (reference) {
         if (reference.startsWith('args.')) {
@@ -107,7 +107,7 @@ var plugin = function (args) {
         }
     };
     // get current value
-    var currentValue = Number((_a = getVariableValue(variable)) !== null && _a !== void 0 ? _a : 0);
+    var currentValue = Number((_a = JSON.stringify(variable)) !== null && _a !== void 0 ? _a : 0);
     // evaluate condition
     args.jobLog("variable [".concat(variable, "] has current value [").concat(currentValue, "]"));
     args.jobLog("checking if [".concat(currentValue, "] [").concat(condition, "] [").concat(expectedValue, "]"));
