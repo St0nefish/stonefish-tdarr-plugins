@@ -6,9 +6,9 @@ import {
   IpluginOutputArgs,
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import {
-  generateTypeIndexes,
+  generateTypeIndexes, getCodecType,
   getStreamsByType,
-  getStreamSort
+  getStreamSort, getTitle,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
 
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
@@ -16,16 +16,21 @@ const details = (): IpluginDetails => ({
   name: 'Sort Streams',
   description:
     `
-    Sort Streams \\n
-    \\n
-    Sorts first by type - video, audio, subtitle, other \\n
-    \\n 
-    Within type follows this logic: \\n
-    Video: resolution (desc), then bitrate (desc)
-    Audio: sorted by type (standard, commentary, descriptive), then channels (desc), bitrate (desc) \\n
-    Subtitle: sorted by type (standard, commentary, descriptive), then forced flag, then default flag \\n
-    Other: left in input order \\n
-    \\n
+    Sort Streams. 
+    \\n\\n
+    Sorts first by type - video, audio, subtitle, other. 
+    \\n\\n 
+    Within type follows this logic: 
+    \\n\\n
+    Video: resolution (desc), then bitrate (desc). 
+    \\n\\n
+    Audio: sorted by type (standard, commentary, descriptive), then channels (desc), bitrate (desc). 
+    \\n\\n
+    Subtitle: sorted by type (standard, commentary, descriptive), then forced flag, then default flag. 
+    \\n\\n
+    Other: left in input order. 
+    \\n\\n
+    \\n\\n
     Influenced by the standard ffmpegCommandRorderStreams plugin. However, I wasn't getting quite the result I wanted, 
     so I learned how to build a flow plugin to build exactly what I was looking for. No configuration, this one is "my 
     way or the highway". 
@@ -48,6 +53,11 @@ const details = (): IpluginDetails => ({
   ],
 });
 
+// function to get string displaying stream order
+const getStreamOrderStr = (streams: IffmpegCommandStream[]) => (
+  streams.map((stream: IffmpegCommandStream, index: number) => (
+    `${index}:${getCodecType(stream)}:${getTitle(stream)}`)).join(', '));
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   const lib = require('../../../../../methods/lib')();
@@ -56,13 +66,15 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   // check if ffmpeg command has been initialized
   checkFfmpegCommandInit(args);
   // get a copy of input streams so we can sort without changing the input
-  const streams: IffmpegCommandStream[] = JSON.parse(JSON.stringify(args.variables.ffmpegCommand.streams));
+  const { streams } = args.variables.ffmpegCommand;
   // generate type indexes
   generateTypeIndexes(streams);
   // track input stream state to compare later
   const originalStreams = JSON.stringify(streams);
   // generate a map of streams grouped by codec type
   const mapByType: { [key: string]: IffmpegCommandStream[]; } = getStreamsByType(streams);
+  // log input state
+  args.jobLog(`input stream order: {${getStreamOrderStr(streams)}}`);
   // create array of post-sort streams
   const sortedStreams: IffmpegCommandStream[] = [];
   // iterate primary stream types (in order) to add back to sorted array
@@ -111,6 +123,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     args.variables.ffmpegCommand.shouldProcess = false;
   } else {
     args.jobLog('file requires sorting - transcode will commence');
+    args.jobLog(`output stream order: {${getStreamOrderStr(streams)}}`);
     // eslint-disable-next-line no-param-reassign
     args.variables.ffmpegCommand.shouldProcess = true;
     // eslint-disable-next-line no-param-reassign

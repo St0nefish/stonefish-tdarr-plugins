@@ -6,6 +6,7 @@ import {
   IpluginInputArgs,
   IpluginOutputArgs,
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
+import { getCodecType } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
 
 /* eslint-disable no-param-reassign */
 const details = (): IpluginDetails => ({
@@ -233,7 +234,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   for (let i = 0; i < args.variables.ffmpegCommand.streams.length; i += 1) {
     const stream = args.variables.ffmpegCommand.streams[i];
     // only process video streams
-    if (stream.codec_type === 'video') {
+    if (getCodecType(stream) === 'video') {
       // only encode if forced or codec isn't already correct
       if (forceEncoding || stream.codec_name !== targetCodec) {
         // enable processing and set hardware decoding

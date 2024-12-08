@@ -40,6 +40,7 @@ exports.plugin = exports.details = void 0;
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 var hardwareUtils_1 = require("../../../../FlowHelpers/1.0.0/hardwareUtils");
 var flowUtils_1 = require("../../../../FlowHelpers/1.0.0/interfaces/flowUtils");
+var metadataUtils_1 = require("../../../../FlowHelpers/1.0.0/local/metadataUtils");
 /* eslint-disable no-param-reassign */
 var details = function () { return ({
     name: 'Set Video Encoder',
@@ -248,7 +249,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
             case 1:
                 if (!(i < args.variables.ffmpegCommand.streams.length)) return [3 /*break*/, 4];
                 stream = args.variables.ffmpegCommand.streams[i];
-                if (!(stream.codec_type === 'video')) return [3 /*break*/, 3];
+                if (!((0, metadataUtils_1.getCodecType)(stream) === 'video')) return [3 /*break*/, 3];
                 if (!(forceEncoding || stream.codec_name !== targetCodec)) return [3 /*break*/, 3];
                 // enable processing and set hardware decoding
                 args.variables.ffmpegCommand.shouldProcess = true;

@@ -6,7 +6,7 @@ var metadataUtils_1 = require("../../../../FlowHelpers/1.0.0/local/metadataUtils
 /* eslint-disable no-param-reassign */
 var details = function () { return ({
     name: 'Cleanup Streams',
-    description: "\n    Remove unwanted streams \n    \n\n\n    This plugin will iterate through all streams that are present and remove ones which are detected as unwanted after\n    applying the various configuration options below.\n    \n\n\n    I use this to purge anything not in my native language, remove duplicates if present, remove data & image streams,\n    and anything flagged as descriptive. There are additional options to remove commentary as well. \n    ",
+    description: "\n    Remove unwanted streams. \n    \n\n\n    This plugin will iterate through all streams that are present and remove ones which are detected as unwanted after\n    applying the various configuration options below. \n    \n\n\n    I use this to purge anything not in my native language, remove duplicates if present, remove data & image streams,\n    and anything flagged as descriptive. There are additional options to remove commentary as well. \n    ",
     style: {
         borderColor: '#6efefc',
     },
@@ -25,7 +25,7 @@ var details = function () { return ({
             inputUI: {
                 type: 'switch',
             },
-            tooltip: "\n         Toggle whether to remove video streams\n         \\n\\n\n         This will remove streams which are flagged as an unwanted language.\n         \\n\\n\n         If doing so would remove all present video streams then the plugin will fail.\n         ",
+            tooltip: "\n         Toggle whether to remove video streams. \n         \\n\\n\n         This will remove streams which are flagged as an unwanted language. \n         \\n\\n\n         If doing so would remove all present video streams then the plugin will fail.\n         ",
         },
         {
             label: 'Remove Audio',
@@ -35,7 +35,7 @@ var details = function () { return ({
             inputUI: {
                 type: 'switch',
             },
-            tooltip: "\n        Toggle whether to remove audio streams \n        \\n\\n\n        This will remove a stream if the it is an unwanted language, a duplicate combo of language+channels, or flagged \n        as unwanted commentary or descriptions.\n        \\n\\n\n        If the configured criteria would cause this plugin to remove all present audio streams then it will fail.\n        ",
+            tooltip: "\n        Toggle whether to remove audio streams. \n        \\n\\n\n        This will remove a stream if the it is an unwanted language, a duplicate combo of language+channels, or flagged \n        as unwanted commentary or descriptions. \n        \\n\\n\n        If the configured criteria would cause this plugin to remove all present audio streams then it will fail. \n        ",
         },
         {
             label: 'Remove Subtitles',
@@ -45,7 +45,7 @@ var details = function () { return ({
             inputUI: {
                 type: 'switch',
             },
-            tooltip: "\n        Toggle whether to remove subtitle streams\n        \\n\\n\n        This will remove a stream if it is an unwanted language, is a duplicate combo of language+default+forced, or is \n        flagged as unwanted commentary or descriptions.\n        \\n\\n\n        This will *not* fail if it is going to remove all present subtitle streams. Unlike video and audio I consider \n        the subtitles to be nice-to-have and often manage them as external srt files anyway.\n        ",
+            tooltip: "\n        Toggle whether to remove subtitle streams. \n        \\n\\n\n        This will remove a stream if it is an unwanted language, is a duplicate combo of language+default+forced, or is \n        flagged as unwanted commentary or descriptions. \n        \\n\\n\n        This will *not* fail if it is going to remove all present subtitle streams. Unlike video and audio I consider \n        the subtitles to be nice-to-have and often manage them as external srt files anyway. \n        ",
         },
         {
             label: 'Languages to Keep',
@@ -80,7 +80,7 @@ var details = function () { return ({
                     ],
                 },
             },
-            tooltip: "\n        Enter a comma-separated list of language tags to keep\n        \\n\\n\n        This will only apply to stream types with their remove flags enabled.\n        \\n\\n\n        Any video, audio, or subtitle stream tagged as a language not in this list will be flagged for removal.\n        \\n\\n\n        Any stream without a language tag present will be treated as matching the first entry in this list.\n        ",
+            tooltip: "\n        Enter a comma-separated list of language tags to keep. \n        \\n\\n\n        This will only apply to stream types with their remove flags enabled. \n        \\n\\n\n        Any video, audio, or subtitle stream tagged as a language not in this list will be flagged for removal. \n        \\n\\n\n        Any stream without a language tag present will be treated as matching the first entry in this list. \n        ",
         },
         {
             label: 'Remove Duplicates',
@@ -115,7 +115,7 @@ var details = function () { return ({
                     ],
                 },
             },
-            tooltip: "\n        Toggle whether to remove streams which appear to be duplicates of others\n        \\n\\n\n        For video streams it will keep the highest resolution+bitrate grouped by language.\n        \\n\\n\n        For audio it will keep the one with the highest bitrate grouped by language+channels+commentary+descriptive.\n        \\n\\n\n        For subtitles it will keep the first entry grouped by language+default+forced flags. \n        \\n\\n\n        All streams which appear to be commentary will be kept if the relevant \"Remove Commentary\" setting is disabled.\n        ",
+            tooltip: "\n        Toggle whether to remove streams which appear to be duplicates of others. \n        \\n\\n\n        For video streams it will keep the highest resolution+bitrate grouped by language. \n        \\n\\n\n        For audio it will keep the one with the highest bitrate grouped by language+channels+commentary+descriptive. \n        \\n\\n\n        For subtitles it will keep the first entry grouped by language+default+forced flags. \n        \\n\\n\n        All streams which appear to be commentary will be kept if the relevant \"Remove Commentary\" setting is disabled. \n        ",
         },
         {
             label: 'Remove Other Streams',
@@ -150,7 +150,7 @@ var details = function () { return ({
                     ],
                 },
             },
-            tooltip: "\n        Toggle whether to remove audio streams tagged as commentary\n        \\n\\n\n        This is detected by checking if the 'comment' disposition flag is set or if the title contains 'commentary' \n        (case insensitive).\n        ",
+            tooltip: "\n        Toggle whether to remove audio streams tagged as commentary. \n        \\n\\n\n        This is detected by checking if the 'comment' disposition flag is set or if the title contains 'commentary' \n        (case insensitive). \n        ",
         },
         {
             label: 'Remove Audio Descriptions',
@@ -175,7 +175,7 @@ var details = function () { return ({
                     ],
                 },
             },
-            tooltip: "\n        Toggle whether to remove audio streams tagged as descriptive\n        \\n\\n\n        This is detected by checking if the 'descriptions' disposition flag is set or if the title contains \n        'description', 'descriptive', or 'sdh' (case insensitive)\n        ",
+            tooltip: "\n        Toggle whether to remove audio streams tagged as descriptive. \n        \\n\\n\n        This is detected by checking if the 'descriptions' disposition flag is set or if the title contains \n        'description', 'descriptive', or 'sdh' (case insensitive). \n        ",
         },
         {
             label: 'Remove Subtitle Commentary',
@@ -200,7 +200,7 @@ var details = function () { return ({
                     ],
                 },
             },
-            tooltip: "\n        Toggle whether to remove subtitle streams tagged as commentary\n        \\n\\n\n        This is detected by checking if the 'comment' disposition flag is set or if the title contains 'commentary' \n        (case insensitive).\n        ",
+            tooltip: "\n        Toggle whether to remove subtitle streams tagged as commentary. \n        \\n\\n\n        This is detected by checking if the 'comment' disposition flag is set or if the title contains 'commentary' \n        (case insensitive). \n        ",
         },
         {
             label: 'Remove Subtitle Descriptions',
@@ -225,7 +225,7 @@ var details = function () { return ({
                     ],
                 },
             },
-            tooltip: "\n        Toggle whether to remove subtitle streams tagged as descriptive\n        \\n\\n\n        This is detected by checking if the 'descriptions' disposition flag is set or if the title contains \n        'description', 'descriptive', or 'sdh' (case insensitive)\n        ",
+            tooltip: "\n        Toggle whether to remove subtitle streams tagged as descriptive. \n        \\n\\n\n        This is detected by checking if the 'descriptions' disposition flag is set or if the title contains \n        'description', 'descriptive', or 'sdh' (case insensitive). \n        ",
         },
     ],
     outputs: [
@@ -271,19 +271,19 @@ var plugin = function (args) {
     };
     var countRemoved = function (stream) {
         var _a;
-        var codecType = stream.codec_type.toLowerCase();
+        var codecType = (0, metadataUtils_1.getCodecType)(stream);
         streamRemovedMap[codecType] = ((_a = streamRemovedMap[codecType]) !== null && _a !== void 0 ? _a : 0) + 1;
     };
     // function to get de-duplication grouping key
     var getDedupeGroupKey = function (stream) {
-        var codecType = stream.codec_type.toLowerCase();
+        var codecType = (0, metadataUtils_1.getCodecType)(stream);
         if (codecType === 'video') {
             return (0, metadataUtils_1.getLanguageTag)(stream, defaultLanguage);
         }
         if (codecType === 'audio') {
             var flags = [
-                (0, metadataUtils_1.isStreamCommentary)(stream) ? 'commentary' : undefined,
-                (0, metadataUtils_1.isStreamDescriptive)(stream) ? 'descriptive' : undefined,
+                (0, metadataUtils_1.isCommentary)(stream) ? 'commentary' : undefined,
+                (0, metadataUtils_1.isDescriptive)(stream) ? 'descriptive' : undefined,
             ].filter(function (item) { return item; });
             return "".concat((0, metadataUtils_1.getLanguageTag)(stream, defaultLanguage), " ").concat((0, metadataUtils_1.getChannelsName)(stream))
                 + "".concat(flags.length > 0 ? "(".concat(flags.join(', '), ")") : '');
@@ -292,15 +292,15 @@ var plugin = function (args) {
             return [
                 stream.disposition.default ? 'default' : undefined,
                 stream.disposition.forced ? 'forced' : undefined,
-                (0, metadataUtils_1.isStreamCommentary)(stream) ? 'commentary' : undefined,
-                (0, metadataUtils_1.isStreamDescriptive)(stream) ? 'descriptive' : undefined,
+                (0, metadataUtils_1.isCommentary)(stream) ? 'commentary' : undefined,
+                (0, metadataUtils_1.isDescriptive)(stream) ? 'descriptive' : undefined,
             ].filter(function (item) { return item; }).join(', ');
         }
         return "index:".concat(stream.typeIndex);
     };
     // function to get sort info from a stream (used for logging)
     var getSortInfo = function (stream) {
-        switch (stream.codec_type.toLowerCase()) {
+        switch ((0, metadataUtils_1.getCodecType)(stream)) {
             case 'video':
                 return "".concat((0, metadataUtils_1.getResolutionName)(stream), " ").concat((0, metadataUtils_1.getBitrate)(stream));
             case 'audio':
@@ -321,22 +321,20 @@ var plugin = function (args) {
     var addToDedupeMap = function (stream) {
         var _a, _b;
         var _c, _d;
-        var codecType = stream.codec_type.toLowerCase();
+        var codecType = (0, metadataUtils_1.getCodecType)(stream);
         ((_b = (_c = ((_a = dedupeMap[codecType]) !== null && _a !== void 0 ? _a : (dedupeMap[codecType] = {})))[_d = getDedupeGroupKey(stream)]) !== null && _b !== void 0 ? _b : (_c[_d] = [])).push(stream);
     };
     // iterate streams to flag the ones to remove
     args.variables.ffmpegCommand.streams.forEach(function (stream) {
         var _a, _b, _c;
-        var codecType = stream.codec_type.toLowerCase();
-        args.jobLog("checking [".concat(codecType, "] stream [").concat((0, metadataUtils_1.getTitle)(stream), "]"));
+        var codecType = (0, metadataUtils_1.getCodecType)(stream);
         switch (codecType) {
             case 'video':
                 if (removeVideo) {
                     if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages, defaultLanguage)) {
                         // language is unwanted
-                        args.jobLog("flagging stream s:".concat(stream.index, ":a:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
-                            + "language [".concat((_a = stream.tags) === null || _a === void 0 ? void 0 : _a.language, "] is unwanted"));
                         stream.removed = true;
+                        stream.removeReason = "language [".concat((_a = stream.tags) === null || _a === void 0 ? void 0 : _a.language, "] is unwanted");
                     }
                 }
                 break;
@@ -346,21 +344,18 @@ var plugin = function (args) {
                     // audio cleanup is enabled
                     if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages, defaultLanguage)) {
                         // language is unwanted
-                        args.jobLog("flagging stream s:".concat(stream.index, ":a:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
-                            + "language [".concat((_b = stream.tags) === null || _b === void 0 ? void 0 : _b.language, "] is unwanted"));
                         stream.removed = true;
+                        stream.removeReason = "language [".concat((_b = stream.tags) === null || _b === void 0 ? void 0 : _b.language, "] is unwanted");
                     }
-                    else if (removeCommentaryAudio && (0, metadataUtils_1.isStreamCommentary)(stream)) {
+                    else if (removeCommentaryAudio && (0, metadataUtils_1.isCommentary)(stream)) {
                         // unwanted commentary
-                        args.jobLog("flagging stream s:".concat(stream.index, ":a:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
-                            + 'marked as commentary');
                         stream.removed = true;
+                        stream.removeReason = 'detected as unwanted commentary';
                     }
-                    else if (removeDescriptiveAudio && (0, metadataUtils_1.isStreamDescriptive)(stream)) {
+                    else if (removeDescriptiveAudio && (0, metadataUtils_1.isDescriptive)(stream)) {
                         // unwanted descriptive
-                        args.jobLog("flagging stream s:".concat(stream.index, ":a:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
-                            + 'marked as descriptive');
                         stream.removed = true;
+                        stream.removeReason = 'detected as unwanted description';
                     }
                 }
                 break;
@@ -369,35 +364,33 @@ var plugin = function (args) {
                     // subtitle cleanup is enabled
                     if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages, defaultLanguage)) {
                         // language is unwanted
-                        args.jobLog("flagging stream s:".concat(stream.index, ":s:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
-                            + "language [".concat((_c = stream.tags) === null || _c === void 0 ? void 0 : _c.language, "] is unwanted"));
                         stream.removed = true;
+                        stream.removeReason = "language [".concat((_c = stream.tags) === null || _c === void 0 ? void 0 : _c.language, "] is unwanted");
                     }
-                    else if (removeCommentarySubs && (0, metadataUtils_1.isStreamCommentary)(stream)) {
+                    else if (removeCommentarySubs && (0, metadataUtils_1.isCommentary)(stream)) {
                         // unwanted commentary
-                        args.jobLog("flagging stream s:".concat(stream.index, ":s:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
-                            + 'marked as commentary');
                         stream.removed = true;
+                        stream.removeReason = 'detected as unwanted commentary';
                     }
-                    else if (removeDescriptiveSubs && (0, metadataUtils_1.isStreamDescriptive)(stream)) {
+                    else if (removeDescriptiveSubs && (0, metadataUtils_1.isDescriptive)(stream)) {
                         // unwanted descriptive
-                        args.jobLog("flagging stream s:".concat(stream.index, ":s:").concat(stream.typeIndex, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
-                            + 'marked as descriptive');
+                        stream.removed = true;
+                        stream.removeReason = 'detected as unwanted description';
                     }
                 }
                 break;
             default:
                 // if not video, audio, or subtitle
                 if (removeOther) {
-                    args.jobLog("flagging stream s:".concat(stream.index, " [").concat((0, metadataUtils_1.getTitle)(stream), "] for removal - ")
-                        + "stream type [".concat(codecType, "] is unwanted"));
-                    // mark stream for removal
+                    // unwanted stream type
                     stream.removed = true;
+                    stream.removeReason = "stream type [".concat(codecType, "] is unwanted");
                 }
         }
         // handle counting and de-dupe map
         if (stream.removed) {
             countRemoved(stream);
+            args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] [").concat((0, metadataUtils_1.getTitle)(stream), "] \n        - ").concat(stream.removeReason));
         }
         else {
             addToDedupeMap(stream);
@@ -409,24 +402,15 @@ var plugin = function (args) {
         Object.keys(dedupeMap)
             .forEach(function (codecType) {
             // for each codec type
-            args.jobLog("checking for duplicate [".concat(codecType, "] streams"));
             Object.keys(dedupeMap[codecType])
                 .forEach(function (groupByKey) {
                 var groupedStreams = dedupeMap[codecType][groupByKey];
                 if (groupedStreams.length > 1) {
-                    args.jobLog("found duplicate [".concat(codecType, "] streams for group-by key [").concat(groupByKey, "]"));
                     groupedStreams.sort((0, metadataUtils_1.getStreamSort)(codecType))
                         .forEach(function (stream, index) {
                         // keep the first entry, discard the rest
-                        if (index === 0) {
-                            // first item we keep
-                            args.jobLog("keeping [".concat(codecType, "] stream [").concat((0, metadataUtils_1.getTitle)(stream), "] with group-by key [").concat(groupByKey, "] and ")
-                                + "sort info [".concat(getSortInfo(stream), "]"));
-                        }
-                        else {
-                            // remove the rest
-                            args.jobLog("removing [".concat(codecType, "] stream [").concat((0, metadataUtils_1.getTitle)(stream), "] with group-by key [").concat(groupByKey, "] and ")
-                                + " sort info [".concat(getSortInfo(stream), "]"));
+                        if (index > 0) {
+                            args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] [").concat((0, metadataUtils_1.getTitle)(stream), "] \n                      - stream is not best option for group-by-key:[").concat(groupByKey, "] sort info:[").concat(getSortInfo(stream), "]"));
                             stream.removed = true;
                             countRemoved(stream);
                         }
@@ -447,7 +431,6 @@ var plugin = function (args) {
         // trying to remove all audio streams
         throw new Error("Error: attempting to remove all ".concat(inputStreamCounts.audio, " audio streams"));
     }
-    // standard return
     return {
         outputFileObj: args.inputFileObj,
         outputNumber: 1,

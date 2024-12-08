@@ -7,7 +7,7 @@ import {
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import { getFfType } from '../../../../FlowHelpers/1.0.0/fileUtils';
 import {
-  getChannelCount,
+  getChannelCount, getCodecType,
   getEncoder,
   isLanguageUndefined,
   streamMatchesLanguage,
@@ -18,16 +18,16 @@ const details = (): IpluginDetails => ({
   name: 'Ensure Audio Stream',
   description:
     `
-    Ensure that the file has an audio stream matching the configured values
+    Ensure that the file has an audio stream matching the configured values. 
     \\n\\n
-    If a stream already exists matching the configured codec and channel count then nothing will happen. If no stream 
-    matches these then one will be created using default ffmpeg settings, or if specified the optional bitrate and/or 
-    samplerate values. This can be used to ensure there is an audio stream with maximum compatibility for your typical
-    players.
+    If a stream already exists matching the configured language, codec, and channel count then nothing will happen. If 
+    no stream matches these then one will be created using default ffmpeg settings, or if specified the optional 
+    bitrate and/or samplerate values. This can be used to ensure there is an audio stream with maximum compatibility 
+    for your typical players. 
     \\n\\n
     Credit to the standard ffmpegCommandEnsureAudioStream plugin for the starting code. I tweaked some things add a few
     additional options to control the title of the resulting stream and ensure I never accidentally used a commentary or
-    descriptive stream as the encoding source.
+    descriptive stream as the encoding source. 
     `,
   style: {
     borderColor: '#6efefc',
@@ -221,7 +221,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   // store streams
   const { streams } = args.variables.ffmpegCommand;
   // first find audio streams
-  const audioStreams = streams.filter((stream) => (stream.codec_type === 'audio'));
+  const audioStreams = streams.filter((stream) => (getCodecType(stream) === 'audio'));
   // if no audio streams found return false
   if (audioStreams.length === 0) {
     throw new Error('No audio streams found in input file');
@@ -296,8 +296,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     streamCopy.outputArgs.push('-ac', `${generateChannels}`);
     // configure bitrate if enabled
     if (bitrate) {
-      const ffType = getFfType(streamCopy.codec_type);
-      streamCopy.outputArgs.push(`-b:${ffType}:{outputTypeIndex}`, `${bitrate}`);
+      streamCopy.outputArgs.push(`-b:${getFfType(getCodecType(streamCopy))}:{outputTypeIndex}`, `${bitrate}`);
     }
     // configure samplerate if enabled
     if (samplerate) {

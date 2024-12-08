@@ -7,7 +7,7 @@ var metadataUtils_1 = require("../../../../FlowHelpers/1.0.0/local/metadataUtils
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 var details = function () { return ({
     name: 'Ensure Audio Stream',
-    description: "\n    Ensure that the file has an audio stream matching the configured values\n    \\n\\n\n    If a stream already exists matching the configured codec and channel count then nothing will happen. If no stream \n    matches these then one will be created using default ffmpeg settings, or if specified the optional bitrate and/or \n    samplerate values. This can be used to ensure there is an audio stream with maximum compatibility for your typical\n    players.\n    \\n\\n\n    Credit to the standard ffmpegCommandEnsureAudioStream plugin for the starting code. I tweaked some things add a few\n    additional options to control the title of the resulting stream and ensure I never accidentally used a commentary or\n    descriptive stream as the encoding source.\n    ",
+    description: "\n    Ensure that the file has an audio stream matching the configured values. \n    \\n\\n\n    If a stream already exists matching the configured language, codec, and channel count then nothing will happen. If \n    no stream matches these then one will be created using default ffmpeg settings, or if specified the optional \n    bitrate and/or samplerate values. This can be used to ensure there is an audio stream with maximum compatibility \n    for your typical players. \n    \\n\\n\n    Credit to the standard ffmpegCommandEnsureAudioStream plugin for the starting code. I tweaked some things add a few\n    additional options to control the title of the resulting stream and ensure I never accidentally used a commentary or\n    descriptive stream as the encoding source. \n    ",
     style: {
         borderColor: '#6efefc',
     },
@@ -177,7 +177,7 @@ var plugin = function (args) {
     // store streams
     var streams = args.variables.ffmpegCommand.streams;
     // first find audio streams
-    var audioStreams = streams.filter(function (stream) { return (stream.codec_type === 'audio'); });
+    var audioStreams = streams.filter(function (stream) { return ((0, metadataUtils_1.getCodecType)(stream) === 'audio'); });
     // if no audio streams found return false
     if (audioStreams.length === 0) {
         throw new Error('No audio streams found in input file');
@@ -252,8 +252,7 @@ var plugin = function (args) {
         streamCopy.outputArgs.push('-ac', "".concat(generateChannels));
         // configure bitrate if enabled
         if (bitrate) {
-            var ffType = (0, fileUtils_1.getFfType)(streamCopy.codec_type);
-            streamCopy.outputArgs.push("-b:".concat(ffType, ":{outputTypeIndex}"), "".concat(bitrate));
+            streamCopy.outputArgs.push("-b:".concat((0, fileUtils_1.getFfType)((0, metadataUtils_1.getCodecType)(streamCopy)), ":{outputTypeIndex}"), "".concat(bitrate));
         }
         // configure samplerate if enabled
         if (samplerate) {

@@ -5,9 +5,10 @@ import {
   IpluginOutputArgs,
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import {
-  getTitle,
-  isStreamCommentary,
-  isStreamDescriptive,
+  generateTitle,
+  getCodecType,
+  isCommentary,
+  isDescriptive,
   isLanguageUndefined,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
 
@@ -16,10 +17,10 @@ const details = (): IpluginDetails => ({
   name: 'Tag Streams',
   description:
     `
-    Add missing tags
+    Add missing tags. 
     \\n\\n
     Checks all streams for missing titles, and optionally overwrites existing ones with new ones generated from current
-    title metadata.
+    title metadata. 
     `,
   style: {
     borderColor: '#6efefc',
@@ -41,11 +42,11 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Specify whether to forcibly re-generate all video, audio, and subtitle stream titles \\n
+        Specify whether to forcibly re-generate all video, audio, and subtitle stream titles. 
         \\n\\n
         This may help if the existing tags include now-outdated info on codec, bitrate, etc. By default this will not be
         applied to descriptive or commentary streams which already have a title. See the below flags to force those as 
-        well.
+        well. 
         `,
     },
     {
@@ -58,9 +59,9 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Specify whether to forcibly re-generate stream titles for streams that are commentary
+        Specify whether to forcibly re-generate stream titles for streams that are commentary. 
         \\n\\n
-        Many commentary streams already have descriptive titles rather than codec/bitrate information.
+        Many commentary streams already have descriptive titles rather than codec/bitrate information. 
         `,
     },
     {
@@ -73,9 +74,9 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Specify whether to forcibly re-generate stream titles for streams that are descriptive
+        Specify whether to forcibly re-generate stream titles for streams that are descriptive. 
         \\n\\n
-        Many descriptive streams already have descriptive titles rather than codec/bitrate information.
+        Many descriptive streams already have descriptive titles rather than codec/bitrate information. 
         `,
     },
     {
@@ -88,7 +89,7 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Specify whether to set missing disposition flags for commentary and descriptive
+        Specify whether to set missing disposition flags for commentary and descriptive. 
         \\n\\n
         If a stream has 'commentary' or 'descriptive' in the title but is missing the appropriate disposition flag then
         set these flags. 
@@ -104,9 +105,9 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Specify whether to override the default language to use for untagged streams
+        Specify whether to override the default language to use for untagged streams. 
         \\n\\n
-        The default value is 'eng'
+        The default value is 'eng'. 
         `,
     },
     {
@@ -132,7 +133,7 @@ const details = (): IpluginDetails => ({
           ],
         },
       },
-      tooltip: 'Enter the language tag to use where missing',
+      tooltip: 'Enter the language tag to use for untagged streams. ',
     },
   ],
   outputs: [
@@ -160,15 +161,14 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   const { streams } = args.variables.ffmpegCommand;
   // iterate streams to flag the ones to remove
   streams.forEach((stream) => {
-    const codecType = stream.codec_type.toLowerCase();
-    args.jobLog(`checking [${codecType}] stream [${stream.tags?.title || getTitle(stream)}]`);
+    const codecType = getCodecType(stream);
     // copy all streams
     stream.outputArgs.push('-c:{outputIndex}', 'copy');
     // add tags for video, audio, subtitle streams
     if (['video', 'audio', 'subtitle'].includes(codecType)) {
       // check if language tag is missing
       if (isLanguageUndefined(stream)) {
-        args.jobLog(`found untagged [${codecType}] stream - setting language to [${tagLanguage}]`);
+        args.jobLog(`found [${codecType}] stream missing language tag - setting to [${tagLanguage}]`);
         // set shouldProcess
         args.variables.ffmpegCommand.shouldProcess = true;
         // ensure tags object exists and set language tag
@@ -179,12 +179,12 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
       }
       // check if we should be force regenerating titles or if title is missing
       if (!stream.tags?.title // title is missing
-        || (forceTitle && !isStreamCommentary(stream) && !isStreamDescriptive(stream)) // force for not commentary/descriptive
-        || (forceTitleCommentary && isStreamCommentary(stream)) // force for commentary
-        || (forceTitleDescriptive && isStreamDescriptive(stream)) // force for descriptive
+        || (forceTitle && !isCommentary(stream) && !isDescriptive(stream)) // force for not commentary/descriptive
+        || (forceTitleCommentary && isCommentary(stream)) // force for commentary
+        || (forceTitleDescriptive && isDescriptive(stream)) // force for descriptive
       ) {
-        const title = getTitle(stream);
-        args.jobLog(`found untagged [${codecType}] stream - setting title to [${title}]`);
+        const title = generateTitle(stream);
+        args.jobLog(`found [${codecType}] stream that requires a title - setting to [${title}]`);
         // set shouldProcess
         args.variables.ffmpegCommand.shouldProcess = true;
         // ensure tags object exists and set title tag
@@ -197,8 +197,8 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     // add disposition flags for audio and subtitle streams if enabled
     if (setDisposition && ['audio', 'subtitle'].includes(codecType)) {
       // handle commentary streams
-      if (isStreamCommentary(stream) && !stream.disposition?.comment) {
-        args.jobLog(`found [${codecType}] stream that appears to be commentary without the disposition flag set`);
+      if (isCommentary(stream) && !stream.disposition?.comment) {
+        args.jobLog(`found [${codecType}] stream that requires the comment disposition flag`);
         // set shouldProcess
         args.variables.ffmpegCommand.shouldProcess = true;
         // set comment flag
@@ -208,8 +208,8 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
         stream.outputArgs.push(`-disposition:${Array.from(codecType)[0]}:{outputTypeIndex}`, 'comment');
       }
       // handle descriptive streams
-      if (isStreamDescriptive(stream) && !stream.disposition?.descriptions) {
-        args.jobLog(`found [${codecType}] stream that appears to be descriptive without the disposition flag set`);
+      if (isDescriptive(stream) && !stream.disposition?.descriptions) {
+        args.jobLog(`found [${codecType}] stream that requires the descriptions disposition flag`);
         // set shouldProcess
         args.variables.ffmpegCommand.shouldProcess = true;
         // set descriptions flag

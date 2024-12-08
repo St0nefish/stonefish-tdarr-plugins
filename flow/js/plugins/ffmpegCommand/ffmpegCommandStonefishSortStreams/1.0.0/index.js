@@ -6,7 +6,7 @@ var metadataUtils_1 = require("../../../../FlowHelpers/1.0.0/local/metadataUtils
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 var details = function () { return ({
     name: 'Sort Streams',
-    description: "\n    Sort Streams \\n\n    \\n\n    Sorts first by type - video, audio, subtitle, other \\n\n    \\n \n    Within type follows this logic: \\n\n    Video: resolution (desc), then bitrate (desc)\n    Audio: sorted by type (standard, commentary, descriptive), then channels (desc), bitrate (desc) \\n\n    Subtitle: sorted by type (standard, commentary, descriptive), then forced flag, then default flag \\n\n    Other: left in input order \\n\n    \\n\n    Influenced by the standard ffmpegCommandRorderStreams plugin. However, I wasn't getting quite the result I wanted, \n    so I learned how to build a flow plugin to build exactly what I was looking for. No configuration, this one is \"my \n    way or the highway\". \n    ",
+    description: "\n    Sort Streams. \n    \\n\\n\n    Sorts first by type - video, audio, subtitle, other. \n    \\n\\n \n    Within type follows this logic: \n    \\n\\n\n    Video: resolution (desc), then bitrate (desc). \n    \\n\\n\n    Audio: sorted by type (standard, commentary, descriptive), then channels (desc), bitrate (desc). \n    \\n\\n\n    Subtitle: sorted by type (standard, commentary, descriptive), then forced flag, then default flag. \n    \\n\\n\n    Other: left in input order. \n    \\n\\n\n    \\n\\n\n    Influenced by the standard ffmpegCommandRorderStreams plugin. However, I wasn't getting quite the result I wanted, \n    so I learned how to build a flow plugin to build exactly what I was looking for. No configuration, this one is \"my \n    way or the highway\". \n    ",
     style: {
         borderColor: '#6efefc',
     },
@@ -25,6 +25,8 @@ var details = function () { return ({
     ],
 }); };
 exports.details = details;
+// function to get string displaying stream order
+var getStreamOrderStr = function (streams) { return (streams.map(function (stream, index) { return ("".concat(index, ":").concat((0, metadataUtils_1.getCodecType)(stream), ":").concat((0, metadataUtils_1.getTitle)(stream))); }).join(', ')); };
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var plugin = function (args) {
     var lib = require('../../../../../methods/lib')();
@@ -33,13 +35,15 @@ var plugin = function (args) {
     // check if ffmpeg command has been initialized
     (0, flowUtils_1.checkFfmpegCommandInit)(args);
     // get a copy of input streams so we can sort without changing the input
-    var streams = JSON.parse(JSON.stringify(args.variables.ffmpegCommand.streams));
+    var streams = args.variables.ffmpegCommand.streams;
     // generate type indexes
     (0, metadataUtils_1.generateTypeIndexes)(streams);
     // track input stream state to compare later
     var originalStreams = JSON.stringify(streams);
     // generate a map of streams grouped by codec type
     var mapByType = (0, metadataUtils_1.getStreamsByType)(streams);
+    // log input state
+    args.jobLog("input stream order: {".concat(getStreamOrderStr(streams), "}"));
     // create array of post-sort streams
     var sortedStreams = [];
     // iterate primary stream types (in order) to add back to sorted array
@@ -91,6 +95,7 @@ var plugin = function (args) {
     }
     else {
         args.jobLog('file requires sorting - transcode will commence');
+        args.jobLog("output stream order: {".concat(getStreamOrderStr(streams), "}"));
         // eslint-disable-next-line no-param-reassign
         args.variables.ffmpegCommand.shouldProcess = true;
         // eslint-disable-next-line no-param-reassign
