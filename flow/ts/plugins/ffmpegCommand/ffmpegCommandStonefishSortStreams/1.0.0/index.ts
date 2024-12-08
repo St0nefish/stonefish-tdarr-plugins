@@ -123,7 +123,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     args.variables.ffmpegCommand.shouldProcess = false;
   } else {
     args.jobLog('file requires sorting - transcode will commence');
-    args.jobLog(`output stream order: {${getStreamOrderStr(streams)}}`);
+    args.jobLog(`output stream order: {${getStreamOrderStr(sortedStreams)}}`);
     // eslint-disable-next-line no-param-reassign
     args.variables.ffmpegCommand.shouldProcess = true;
     // eslint-disable-next-line no-param-reassign
