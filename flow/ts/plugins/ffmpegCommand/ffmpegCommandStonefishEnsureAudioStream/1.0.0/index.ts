@@ -7,7 +7,8 @@ import {
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import { getFfType } from '../../../../FlowHelpers/1.0.0/fileUtils';
 import {
-  getChannelCount, getCodecType,
+  getChannelCount,
+  getCodecType,
   getEncoder,
   isLanguageUndefined,
   streamMatchesLanguage,
@@ -229,7 +230,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   // log stream to create
   args.jobLog(`attempting to create audio stream [${targetCodec} ${targetChannels} ${targetLang}] `);
   // filter streams to only include audio streams with the specified language tag
-  let sourceStreams = audioStreams.filter((stream) => streamMatchesLanguage(stream, [targetLang]));
+  let sourceStreams = audioStreams.filter((stream) => streamMatchesLanguage(stream, targetLang));
   // if no streams exist with desired language try again with undefined language
   if (sourceStreams.length === 0) {
     args.jobLog(`No streams with language tag ${targetLang} found. Retrying with undefined `);
@@ -279,7 +280,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     + ` [lang:${sourceStream.tags?.language}, codec:${sourceStream.codec_name},`
     + ` channels:${sourceStream.channels}, bitrate:${sourceStream.bit_rate}] `);
   // if desired stream already exists then exit
-  if (audioStreams.filter((stream) => (streamMatchesLanguage(stream, [targetLang])
+  if (audioStreams.filter((stream) => (streamMatchesLanguage(stream, targetLang)
     && stream.codec_name === targetCodec
     && stream.channels === generateChannels)).length > 0) {
     args.jobLog(`File already has stream matching: [${targetCodec}, ${targetChannels}, ${targetLang}] `);

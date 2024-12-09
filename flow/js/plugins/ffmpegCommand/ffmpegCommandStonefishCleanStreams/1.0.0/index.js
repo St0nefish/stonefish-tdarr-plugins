@@ -274,7 +274,7 @@ var details = function () { return ({
 exports.details = details;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function () {
-    var lib, removeVideo, removeAudio, removeSubtitles, removeDuplicates, removeOther, removeCommentaryAudio, removeCommentarySubs, removeDescriptiveAudio, removeDescriptiveSubs, keepLanguages, defaultLanguage, fileObj, streams, inputStreamCounts, streamRemovedMap, countRemoved, getDedupeGroupKey, getSortInfo, dedupeMap, addToDedupeMap;
+    var lib, removeVideo, removeAudio, removeSubtitles, removeDuplicates, removeOther, removeCommentaryAudio, removeCommentarySubs, removeDescriptiveAudio, removeDescriptiveSubs, keepLanguages, defaultLanguage, mediaInfo, streams, inputStreamCounts, streamRemovedMap, countRemoved, getDedupeGroupKey, getSortInfo, dedupeMap, addToDedupeMap;
     var _a;
     return __generator(this, function (_b) {
         switch (_b.label) {
@@ -293,27 +293,15 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 removeCommentarySubs = Boolean(args.inputs.removeCommentarySubs);
                 removeDescriptiveAudio = Boolean(args.inputs.removeDescriptiveAudio);
                 removeDescriptiveSubs = Boolean(args.inputs.removeDescriptiveSubs);
-                keepLanguages = String(args.inputs.keepLanguages).split(',').map(function (langTag) { return langTag.trim(); });
+                keepLanguages = String(args.inputs.keepLanguages)
+                    .split(',').filter(function (langTag) { return langTag; }).map(function (langTag) { return langTag.trim(); });
                 defaultLanguage = (_a = keepLanguages[0]) !== null && _a !== void 0 ? _a : 'eng';
-                // ToDo - remove
-                args.jobLog("library settings:\n".concat(JSON.stringify(args.librarySettings)));
-                args.jobLog("input file:\n".concat(JSON.stringify(args.inputFileObj)));
-                fileObj = args.inputFileObj;
-                if (!(args.inputFileObj && args.scanIndividualFile)) return [3 /*break*/, 2];
-                args.jobLog("scanning file: ".concat(args.inputFileObj._id));
-                return [4 /*yield*/, args.scanIndividualFile(args.inputFileObj, {
-                        exifToolScan: true,
-                        mediaInfoScan: true,
-                        closedCaptionScan: false,
-                    })];
+                return [4 /*yield*/, (0, metadataUtils_1.getMediaInfo)(args)];
             case 1:
-                fileObj = _b.sent();
-                _b.label = 2;
-            case 2:
-                args.jobLog("file object after scan:\n".concat(JSON.stringify(fileObj)));
+                mediaInfo = _b.sent();
                 streams = args.variables.ffmpegCommand.streams;
                 // generate type indexes
-                (0, metadataUtils_1.generateTypeIndexes)(streams);
+                (0, metadataUtils_1.setTypeIndexes)(streams);
                 inputStreamCounts = (0, metadataUtils_1.getTypeCountsMap)(streams);
                 args.jobLog("input stream counts: ".concat(JSON.stringify(inputStreamCounts)));
                 streamRemovedMap = {
@@ -333,8 +321,8 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     }
                     if (codecType === 'audio') {
                         var flags = [
-                            (0, metadataUtils_1.isCommentary)(stream) ? 'commentary' : undefined,
-                            (0, metadataUtils_1.isDescriptive)(stream) ? 'descriptive' : undefined,
+                            (0, metadataUtils_1.streamIsCommentary)(stream) ? 'commentary' : undefined,
+                            (0, metadataUtils_1.streamIsDescriptive)(stream) ? 'descriptive' : undefined,
                         ].filter(function (item) { return item; });
                         return "".concat((0, metadataUtils_1.getLanguageTag)(stream, defaultLanguage), " ").concat((0, metadataUtils_1.getChannelsName)(stream))
                             + "".concat(flags.length > 0 ? "(".concat(flags.join(', '), ")") : '');
@@ -343,8 +331,8 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         return [
                             stream.disposition.default ? 'default' : undefined,
                             stream.disposition.forced ? 'forced' : undefined,
-                            (0, metadataUtils_1.isCommentary)(stream) ? 'commentary' : undefined,
-                            (0, metadataUtils_1.isDescriptive)(stream) ? 'descriptive' : undefined,
+                            (0, metadataUtils_1.streamIsCommentary)(stream) ? 'commentary' : undefined,
+                            (0, metadataUtils_1.streamIsDescriptive)(stream) ? 'descriptive' : undefined,
                         ].filter(function (item) { return item; }).join(', ');
                     }
                     return "index:".concat(stream.typeIndex);
@@ -374,12 +362,12 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 };
                 // iterate streams to flag the ones to remove
                 args.variables.ffmpegCommand.streams.forEach(function (stream) {
-                    var _a, _b, _c;
+                    var _a, _b, _c, _d;
                     var codecType = (0, metadataUtils_1.getCodecType)(stream);
                     switch (codecType) {
                         case 'video':
                             if (removeVideo) {
-                                if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages, defaultLanguage)) {
+                                if (!(0, metadataUtils_1.streamMatchesLanguages)(stream, keepLanguages, defaultLanguage)) {
                                     // language is unwanted
                                     stream.removed = true;
                                     stream.removeReason = "language [".concat((_a = stream.tags) === null || _a === void 0 ? void 0 : _a.language, "] is unwanted");
@@ -390,17 +378,17 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                             // determine if we should remove this audio stream
                             if (removeAudio) {
                                 // audio cleanup is enabled
-                                if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages, defaultLanguage)) {
+                                if (!(0, metadataUtils_1.streamMatchesLanguages)(stream, keepLanguages, defaultLanguage)) {
                                     // language is unwanted
                                     stream.removed = true;
                                     stream.removeReason = "language [".concat((_b = stream.tags) === null || _b === void 0 ? void 0 : _b.language, "] is unwanted");
                                 }
-                                else if (removeCommentaryAudio && (0, metadataUtils_1.isCommentary)(stream)) {
+                                else if (removeCommentaryAudio && (0, metadataUtils_1.streamIsCommentary)(stream)) {
                                     // unwanted commentary
                                     stream.removed = true;
                                     stream.removeReason = 'detected as unwanted commentary';
                                 }
-                                else if (removeDescriptiveAudio && (0, metadataUtils_1.isDescriptive)(stream)) {
+                                else if (removeDescriptiveAudio && (0, metadataUtils_1.streamIsDescriptive)(stream)) {
                                     // unwanted descriptive
                                     stream.removed = true;
                                     stream.removeReason = 'detected as unwanted description';
@@ -410,17 +398,17 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         case 'subtitle':
                             if (removeSubtitles) {
                                 // subtitle cleanup is enabled
-                                if (!(0, metadataUtils_1.streamMatchesLanguage)(stream, keepLanguages, defaultLanguage)) {
+                                if (!(0, metadataUtils_1.streamMatchesLanguages)(stream, keepLanguages, defaultLanguage)) {
                                     // language is unwanted
                                     stream.removed = true;
                                     stream.removeReason = "language [".concat((_c = stream.tags) === null || _c === void 0 ? void 0 : _c.language, "] is unwanted");
                                 }
-                                else if (removeCommentarySubs && (0, metadataUtils_1.isCommentary)(stream)) {
+                                else if (removeCommentarySubs && (0, metadataUtils_1.streamIsCommentary)(stream)) {
                                     // unwanted commentary
                                     stream.removed = true;
                                     stream.removeReason = 'detected as unwanted commentary';
                                 }
-                                else if (removeDescriptiveSubs && (0, metadataUtils_1.isDescriptive)(stream)) {
+                                else if (removeDescriptiveSubs && (0, metadataUtils_1.streamIsDescriptive)(stream)) {
                                     // unwanted descriptive
                                     stream.removed = true;
                                     stream.removeReason = 'detected as unwanted description';
@@ -438,7 +426,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     // handle counting and de-dupe map
                     if (stream.removed) {
                         countRemoved(stream);
-                        args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] [").concat((0, metadataUtils_1.getTitle)(stream), "] \n        - ").concat(stream.removeReason));
+                        args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] \n        [").concat((0, metadataUtils_1.getTitleForStream)(stream, (_d = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _d === void 0 ? void 0 : _d[stream.index]), "] - ").concat(stream.removeReason));
                     }
                     else {
                         addToDedupeMap(stream);
@@ -454,11 +442,12 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                             .forEach(function (groupByKey) {
                             var groupedStreams = dedupeMap[codecType][groupByKey];
                             if (groupedStreams.length > 1) {
-                                groupedStreams.sort((0, metadataUtils_1.getStreamSort)(codecType))
+                                groupedStreams.sort((0, metadataUtils_1.getStreamSorter)(mediaInfo))
                                     .forEach(function (stream, index) {
+                                    var _a;
                                     // keep the first entry, discard the rest
                                     if (index > 0) {
-                                        args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] [").concat((0, metadataUtils_1.getTitle)(stream), "] \n                      - stream is not best option for group-by-key:[").concat(groupByKey, "] sort info:[").concat(getSortInfo(stream), "]"));
+                                        args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] \n                      [").concat((0, metadataUtils_1.getTitleForStream)(stream, (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a[stream.index]), "] \n                      - stream is not best option for group-by-key:[").concat(groupByKey, "] sort info:[").concat(getSortInfo(stream), "]"));
                                         stream.removed = true;
                                         countRemoved(stream);
                                     }

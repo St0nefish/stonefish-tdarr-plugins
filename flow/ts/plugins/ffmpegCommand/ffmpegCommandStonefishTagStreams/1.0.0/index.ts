@@ -5,12 +5,20 @@ import {
   IpluginOutputArgs,
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import {
-  generateTitle,
+  generateTitleForStream,
   getCodecType,
-  isCommentary,
-  isDescriptive,
+  getMediaInfo,
+  getMediaInfoTrack,
+  getStreamTypeFlag,
   isLanguageUndefined,
+  setTypeIndexes,
+  streamHasCommentary,
+  streamHasDescriptive,
+  streamIsCommentary,
+  streamIsDescriptive,
+  streamIsStandard,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
+import { ImediaInfo } from '../../../../FlowHelpers/1.0.0/interfaces/synced/IFileObject';
 
 /* eslint-disable no-param-reassign */
 const details = (): IpluginDetails => ({
@@ -89,26 +97,22 @@ const details = (): IpluginDetails => ({
       },
       tooltip:
         `
-        Specify whether to set missing disposition flags for commentary and descriptive. 
+        Specify whether to set missing disposition flags. 
         \\n\\n
-        If a stream has 'commentary' or 'descriptive' in the title but is missing the appropriate disposition flag then
-        set these flags. 
+        If a stream has 'commentary', 'descriptive', or 'sdh' in the title but is missing the appropriate disposition 
+        flag then set these flags. Additionally, if a video or audio stream is the first one but it does not have the
+        'default' flag set then enable it. 
         `,
     },
     {
-      label: 'Override Default Language Tag',
+      label: 'Set Language Tag',
       name: 'setLangTag',
       type: 'boolean',
-      defaultValue: 'false',
+      defaultValue: 'true',
       inputUI: {
         type: 'switch',
       },
-      tooltip:
-        `
-        Specify whether to override the default language to use for untagged streams. 
-        \\n\\n
-        The default value is 'eng'. 
-        `,
+      tooltip: 'Specify whether to set language tags on streams where it is missing.',
     },
     {
       label: 'Language Tag',
@@ -133,7 +137,7 @@ const details = (): IpluginDetails => ({
           ],
         },
       },
-      tooltip: 'Enter the language tag to use for untagged streams. ',
+      tooltip: 'Enter the language tag to use for untagged streams.',
     },
   ],
   outputs: [
@@ -145,7 +149,7 @@ const details = (): IpluginDetails => ({
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
+const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const lib = require('../../../../../methods/lib')();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   args.inputs = lib.loadDefaultValues(args.inputs, details);
@@ -156,9 +160,14 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   const forceTitleCommentary = Boolean(args.inputs.forceTitleCommentary);
   const forceTitleDescriptive = Boolean(args.inputs.forceTitleDescriptive);
   const setDisposition = Boolean(args.inputs.setDisposition);
-  const tagLanguage: string = (args.inputs.setLangTag) ? String(args.inputs.tagLanguage) : 'eng';
+  const setTagLanguage = Boolean(args.inputs.setLangTag);
+  const tagLanguage: string = setTagLanguage ? String(args.inputs.tagLanguage) : 'eng';
   // grab a handle to streams
   const { streams } = args.variables.ffmpegCommand;
+  // set type indexes, we'll use to manage default flags
+  setTypeIndexes(streams);
+  // execute a mediaInfo scan
+  const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
   // iterate streams to flag the ones to remove
   streams.forEach((stream) => {
     const codecType = getCodecType(stream);
@@ -167,56 +176,65 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
     // add tags for video, audio, subtitle streams
     if (['video', 'audio', 'subtitle'].includes(codecType)) {
       // check if language tag is missing
-      if (isLanguageUndefined(stream)) {
+      if (setTagLanguage && isLanguageUndefined(stream)) {
         args.jobLog(`found [${codecType}] stream missing language tag - setting to [${tagLanguage}]`);
-        // set shouldProcess
-        args.variables.ffmpegCommand.shouldProcess = true;
         // ensure tags object exists and set language tag
-        stream.tags ??= {};
-        stream.tags.language = tagLanguage;
-        // add ffmpeg args to tag the file
-        stream.outputArgs.push(`-metadata:s:${Array.from(codecType)[0]}:{outputTypeIndex}`, `language=${tagLanguage}`);
-      }
-      // check if we should be force regenerating titles or if title is missing
-      if (!stream.tags?.title // title is missing
-        || (forceTitle && !isCommentary(stream) && !isDescriptive(stream)) // force for not commentary/descriptive
-        || (forceTitleCommentary && isCommentary(stream)) // force for commentary
-        || (forceTitleDescriptive && isDescriptive(stream)) // force for descriptive
-      ) {
-        const title = generateTitle(stream);
-        args.jobLog(`found [${codecType}] stream that requires a title - setting to [${title}]`);
+        (stream.tags ??= {}).language = tagLanguage;
         // set shouldProcess
         args.variables.ffmpegCommand.shouldProcess = true;
-        // ensure tags object exists and set title tag
-        stream.tags ??= {};
-        stream.tags.title = title;
         // add ffmpeg args to tag the file
-        stream.outputArgs.push(`-metadata:s:${Array.from(codecType)[0]}:{outputTypeIndex}`, `title=${title}`);
+        stream.outputArgs.push(`-metadata:s:${getStreamTypeFlag(stream)}:{outputTypeIndex}`, `language=${tagLanguage}`);
+      }
+      // check if we should set a stream title
+      // true if title is missing or if one of the force new flags is on
+      if (!stream.tags?.title // title is missing
+        || (forceTitle && streamIsStandard(stream)) // force new title for standard stream
+        || (forceTitleCommentary && streamIsCommentary(stream)) // force new title for commentary
+        || (forceTitleDescriptive && streamIsDescriptive(stream)) // force new title for descriptive
+      ) {
+        // generate a title for this stream
+        const title = generateTitleForStream(stream, getMediaInfoTrack(stream, mediaInfo));
+        args.jobLog(`found [${codecType}] stream that requires a title - setting to [${title}]`);
+        // ensure tags object exists and set title tag
+        (stream.tags ??= {}).title = title;
+        // set shouldProcess
+        args.variables.ffmpegCommand.shouldProcess = true;
+        // add ffmpeg args to tag the file
+        stream.outputArgs.push(`-metadata:s:${getStreamTypeFlag(stream)}:{outputTypeIndex}`, `title=${title}`);
       }
     }
-    // add disposition flags for audio and subtitle streams if enabled
-    if (setDisposition && ['audio', 'subtitle'].includes(codecType)) {
+    // handle disposition flags if enabled
+    if (setDisposition) {
+      // array of flags to add or remove
+      const flags = [];
+      // ensure first video and audio streams have default flag set
+      if (stream.typeIndex === 0 && !stream.disposition.default) {
+        args.jobLog(`found [${codecType}] stream that is first but not set as default`);
+        // add the default flag
+        flags.push('+default');
+      }
       // handle commentary streams
-      if (isCommentary(stream) && !stream.disposition?.comment) {
+      if (streamHasCommentary(stream) && !stream.disposition?.comment) {
         args.jobLog(`found [${codecType}] stream that requires the comment disposition flag`);
-        // set shouldProcess
-        args.variables.ffmpegCommand.shouldProcess = true;
-        // set comment flag
-        stream.disposition ??= {};
-        stream.disposition.comment = 1;
-        // add ffmpeg args to set the flag
-        stream.outputArgs.push(`-disposition:${Array.from(codecType)[0]}:{outputTypeIndex}`, 'comment');
+        // add comment flag
+        flags.push('+comment');
       }
       // handle descriptive streams
-      if (isDescriptive(stream) && !stream.disposition?.descriptions) {
+      if (streamHasDescriptive(stream) && !stream.disposition?.descriptions) {
         args.jobLog(`found [${codecType}] stream that requires the descriptions disposition flag`);
+        // add descriptions tag
+        flags.push('+descriptions');
+      }
+      // remove default flag from non-standard streams
+      if (!streamIsStandard(stream) && stream.disposition.default) {
+        flags.push('-default');
+      }
+      // if any flag alterations are required construct the command
+      if (flags.length > 0) {
         // set shouldProcess
         args.variables.ffmpegCommand.shouldProcess = true;
-        // set descriptions flag
-        stream.disposition ??= {};
-        stream.disposition.descriptions = 1;
-        // add ffmpeg args to set the flag
-        stream.outputArgs.push(`-disposition:${Array.from(codecType)[0]}:{outputTypeIndex}`, 'descriptions');
+        // add ffmpeg args to set the flag(s)
+        stream.outputArgs.push(`-disposition:${getStreamTypeFlag(stream)}:{outputTypeIndex}`, `${flags.join('')}`);
       }
     }
   });

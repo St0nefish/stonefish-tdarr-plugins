@@ -6,10 +6,13 @@ import {
   IpluginOutputArgs,
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import {
-  generateTypeIndexes, getCodecType,
-  getStreamsByType,
-  getStreamSort, getTitle, getStandardStreamSorter,
+  getCodecType,
+  getMediaInfo,
+  getStreamSorter,
+  getTitleForStream,
+  setTypeIndexes,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
+import { ImediaInfo } from '../../../../FlowHelpers/1.0.0/interfaces/synced/IFileObject';
 
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 const details = (): IpluginDetails => ({
@@ -54,12 +57,12 @@ const details = (): IpluginDetails => ({
 });
 
 // function to get string displaying stream order
-const getStreamOrderStr = (streams: IffmpegCommandStream[]) => (
+const getStreamOrderStr = (streams: IffmpegCommandStream[], mediaInfo?: ImediaInfo) => (
   streams.map((stream: IffmpegCommandStream, index: number) => (
-    `'${index}:${getCodecType(stream)}:${getTitle(stream)}'`)).join(', '));
+    `'${index}:${getCodecType(stream)}:${getTitleForStream(stream, mediaInfo?.track?.[stream.index])}'`)).join(', '));
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
+const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const lib = require('../../../../../methods/lib')();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   args.inputs = lib.loadDefaultValues(args.inputs, details);
@@ -67,14 +70,16 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   checkFfmpegCommandInit(args);
   // get a copy of input streams so we can sort without changing the input
   const { streams } = args.variables.ffmpegCommand;
+  // execute a media info scan
+  const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
   // generate type indexes
-  generateTypeIndexes(streams);
+  setTypeIndexes(streams);
   // log input state
-  args.jobLog(`input stream order: {${getStreamOrderStr(streams)}}`);
+  args.jobLog(`input stream order: {${getStreamOrderStr(streams, mediaInfo)}}`);
   // track input stream state to compare later
   const originalStreams: string = JSON.stringify(streams);
   // create array of post-sort streams
-  const sortedStreams: IffmpegCommandStream[] = streams.sort(getStandardStreamSorter);
+  const sortedStreams: IffmpegCommandStream[] = streams.sort(getStreamSorter(mediaInfo));
   // check if new order matches original
   if (JSON.stringify(sortedStreams) === originalStreams) {
     args.jobLog('file already sorted - no transcode required');
