@@ -8,7 +8,7 @@ import {
 import {
   generateTypeIndexes, getCodecType,
   getStreamsByType,
-  getStreamSort, getTitle,
+  getStreamSort, getTitle, getStandardStreamSorter,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
 
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
@@ -56,7 +56,7 @@ const details = (): IpluginDetails => ({
 // function to get string displaying stream order
 const getStreamOrderStr = (streams: IffmpegCommandStream[]) => (
   streams.map((stream: IffmpegCommandStream, index: number) => (
-    `${index}:${getCodecType(stream)}:${getTitle(stream)}`)).join(', '));
+    `'${index}:${getCodecType(stream)}:${getTitle(stream)}'`)).join(', '));
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
@@ -69,53 +69,12 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   const { streams } = args.variables.ffmpegCommand;
   // generate type indexes
   generateTypeIndexes(streams);
-  // track input stream state to compare later
-  const originalStreams = JSON.stringify(streams);
-  // generate a map of streams grouped by codec type
-  const mapByType: { [key: string]: IffmpegCommandStream[]; } = getStreamsByType(streams);
   // log input state
   args.jobLog(`input stream order: {${getStreamOrderStr(streams)}}`);
+  // track input stream state to compare later
+  const originalStreams: string = JSON.stringify(streams);
   // create array of post-sort streams
-  const sortedStreams: IffmpegCommandStream[] = [];
-  // iterate primary stream types (in order) to add back to sorted array
-  ['video', 'audio', 'subtitle'].forEach((codecType: string) => {
-    const typeStreams = mapByType[codecType];
-    if (typeStreams && typeStreams.length > 0) {
-      // at least one stream of this type - sort then iterate streams of this type
-      typeStreams.sort(getStreamSort(codecType)).forEach((stream: IffmpegCommandStream, tIndex: number) => {
-        // set new index of this stream
-        // eslint-disable-next-line no-param-reassign
-        stream.index = sortedStreams.length;
-        // also set new type index
-        // eslint-disable-next-line no-param-reassign
-        stream.typeIndex = tIndex;
-        // add to our sorted array
-        sortedStreams.push(stream);
-        args.jobLog(`added [${codecType}] stream:[${stream.tags?.title}]`);
-      });
-      // delete this type from the map so we can handle leftovers later
-      delete mapByType[codecType];
-    }
-  });
-  // handle any remaining stream types we may have missed (why are these still here?)
-  Object.keys(mapByType)
-    // filter to types with streams
-    .filter((key) => mapByType[key] && mapByType[key].length > 0)
-    // iterate to add to the end of our sorted map
-    .forEach((codecType) => {
-      // add all remaining streams, leave in existing sort order
-      mapByType[codecType].forEach((stream: IffmpegCommandStream, tIndex: number) => {
-        // set new index of this stream
-        // eslint-disable-next-line no-param-reassign
-        stream.index = sortedStreams.length;
-        // also set new type index
-        // eslint-disable-next-line no-param-reassign
-        stream.typeIndex = tIndex;
-        // add to our sorted array
-        sortedStreams.push(stream);
-        args.jobLog(`added [${codecType}] stream:[${stream?.tags?.title}]`);
-      });
-    });
+  const sortedStreams: IffmpegCommandStream[] = streams.sort(getStandardStreamSorter);
   // check if new order matches original
   if (JSON.stringify(sortedStreams) === originalStreams) {
     args.jobLog('file already sorted - no transcode required');

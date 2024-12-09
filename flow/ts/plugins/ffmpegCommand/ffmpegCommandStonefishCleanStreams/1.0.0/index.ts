@@ -348,6 +348,10 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   const removeDescriptiveSubs = Boolean(args.inputs.removeDescriptiveSubs);
   const keepLanguages: string[] = String(args.inputs.keepLanguages).split(',').map((langTag: string) => langTag.trim());
   const defaultLanguage = keepLanguages[0] ?? 'eng';
+
+  // ToDo - remove
+  args.jobLog(`input file:\n${JSON.stringify(args.inputFileObj)}`);
+
   // grab a handle to streams
   const { streams } = args.variables.ffmpegCommand;
   // generate type indexes

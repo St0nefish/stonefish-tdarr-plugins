@@ -153,6 +153,9 @@ export const isDescriptive = (stream: IffmpegCommandStream): boolean => (
   || stream.disposition?.visual_impaired
   || stream.tags?.title?.toLowerCase()?.includes('sdh'));
 
+// function to determine if a stream is standard (not commentary and not descriptive)
+export const isStandard = (stream: IffmpegCommandStream): boolean => (!isCommentary(stream) && !isDescriptive(stream));
+
 // function to generate the title for a stream
 export const generateTitle = (stream: IffmpegCommandStream): string => {
   const codecType = getCodecType(stream);
@@ -163,7 +166,6 @@ export const generateTitle = (stream: IffmpegCommandStream): string => {
         .join(' ');
     case 'audio':
       const audioFlags = [
-        (stream.disposition?.default ? 'default' : undefined),
         (stream.disposition?.dub ? 'dub' : undefined),
         (isDescriptive(stream) ? 'descriptive' : undefined),
         (isCommentary(stream) ? 'commentary' : undefined),
@@ -174,7 +176,6 @@ export const generateTitle = (stream: IffmpegCommandStream): string => {
         getBitrate(stream),
         ((stream.sample_rate) ? `${Math.floor(Number(stream.sample_rate) / 1000)}kHz` : undefined),
         ((stream.bits_per_raw_sample) ? `${stream.bits_per_raw_sample}-bit` : undefined),
-        getLanguageName(getLanguageTag(stream)),
         (audioFlags.length > 0) ? `(${audioFlags.join(', ')})` : undefined,
       ].filter((item) => item !== undefined)
         .join(' ');
@@ -273,8 +274,111 @@ export const getStreamSort = (codecType: string): ((s1: IffmpegCommandStream, s2
         return 0;
       };
     default:
-      // don't sort
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      return (o1: IffmpegCommandStream, o2: IffmpegCommandStream): number => 0;
+      // don't sort - rely purely on type index
+      return (s1: IffmpegCommandStream, s2: IffmpegCommandStream): number => {
+        if (s1.typeIndex < s2.typeIndex) return -1;
+        if (s1.typeIndex > s2.typeIndex) return 1;
+        return 0;
+      };
+  }
+};
+
+// function to sort all streams
+// sorts first by codec type - video, audio, subtitle, other
+// for nonstandard types sorts alphabetically
+// then sorts video by resolution (desc) then bitrate (desc)
+// sorts audio by type (standard, commentary, descriptive), then channels (desc), bitrate (desc)
+// sorts subtitles by forced, default, neither
+// sorts all other stream types by type index
+const streamTypeOrder: string[] = ['video', 'audio', 'subtitle'];
+export const getStandardStreamSorter = (s1: IffmpegCommandStream, s2: IffmpegCommandStream): number => {
+  // ==== sort first by stream type ==== //
+  // get codec type for both streams
+  const s1Type: string = getCodecType(s1);
+  const s2Type: string = getCodecType(s2);
+  // get index of each, default to 99, we'll tiebreak non-video/audio/subtitle with alphabetic order
+  const s1TypeIdx: number = streamTypeOrder.indexOf(s1Type) ?? 99;
+  const s2TypeIdx: number = streamTypeOrder.indexOf(s2Type) ?? 99;
+  if (s1TypeIdx < s2TypeIdx) return -1;
+  if (s1TypeIdx > s2TypeIdx) return 1;
+  // either codecs are of same type or both entirely unknown
+  if (!streamTypeOrder.includes(s1Type) && !streamTypeOrder.includes(s2Type)) {
+    // tiebreaker for nonstandard codecs is alphabetic order
+    if (s1Type.localeCompare(s2Type) === -1) return -1;
+    if (s1Type.localeCompare(s2Type) === 1) return 1;
+  }
+  // failsafe to validate type sorting
+  if (s1Type !== s2Type) {
+    throw new Error(`failed to determine sort order for codec types [${s1Type}] and [${s2Type}]`);
+  }
+  // ==== tiebreaker for same-type depends on the type ==== //
+  switch (s1Type) {
+    case 'video':
+      // resolution descending
+      const s1Resolution = Number(s1?.width ?? 0);
+      const s2Resolution = Number(s2?.width ?? 0);
+      if (s1Resolution > s2Resolution) return -1;
+      if (s1Resolution < s2Resolution) return 1;
+      // then bitrate descending
+      const s1VideoBitrate = Number(s1?.tags?.BPS ?? 0);
+      const s2VideoBitrate = Number(s2?.tags?.BPS ?? 0);
+      if (s1VideoBitrate > s2VideoBitrate) return -1;
+      if (s1VideoBitrate < s2VideoBitrate) return 1;
+      // tie
+      return 0;
+    case 'audio':
+      // sort by commentary, descriptive, bitrate (desc)
+      // regular streams come before commentary/descriptive
+      if (isStandard(s1) && (isCommentary(s2) || isDescriptive(s2))) return -1;
+      if ((isCommentary(s1) || isDescriptive(s1)) && isStandard(s2)) return 1;
+      // commentary comes before descriptive
+      if ((isCommentary(s1) && !isDescriptive(s1)) && isDescriptive(s2)) return -1;
+      if (isDescriptive(s1) && (isCommentary(s2) && !isDescriptive(s2))) return 1;
+      // descriptive comes before commentary & descriptive
+      if ((isDescriptive(s1) && !isCommentary(s1)) && (isCommentary(s2) && isDescriptive(s2))) return -1;
+      if ((isCommentary(s1) && isDescriptive(s1)) && (isDescriptive(s2) && !isCommentary(s2))) return -1;
+      // channels descending
+      const s1Channels = Number(s1?.channels ?? 0);
+      const s2Channels = Number(s2?.channels ?? 0);
+      if (s1Channels > s2Channels) return -1;
+      if (s1Channels < s2Channels) return 1;
+      // then bitrate descending
+      const s1AudioBitrate = Number(s1?.tags?.BPS ?? 0);
+      const s2AudioBitrate = Number(s2?.tags?.BPS ?? 0);
+      if (s1AudioBitrate > s2AudioBitrate) return -1;
+      if (s1AudioBitrate < s2AudioBitrate) return 1;
+      // tie
+      return 0;
+    case 'subtitle':
+      // sort by commentary/descriptive/default/forced
+      // regular streams come before commentary/descriptive
+      if (isStandard(s1) && (isCommentary(s2) || isDescriptive(s2))) return -1;
+      if ((isCommentary(s1) || isDescriptive(s1)) && isStandard(s2)) return 1;
+      // commentary comes before descriptive
+      if ((isCommentary(s1) && !isDescriptive(s1)) && isDescriptive(s2)) return -1;
+      if (isDescriptive(s1) && (isCommentary(s2) && !isDescriptive(s2))) return 1;
+      // descriptive comes before commentary & descriptive
+      if ((isDescriptive(s1) && !isCommentary(s1)) && (isCommentary(s2) && isDescriptive(s2))) return -1;
+      if ((isCommentary(s1) && isDescriptive(s1)) && (isDescriptive(s2) && !isCommentary(s2))) return -1;
+      // forced flag descending
+      const s1Forced = Number(s1?.disposition?.forced ?? 0);
+      const s2Forced = Number(s2?.disposition?.forced ?? 0);
+      if (s1Forced > s2Forced) return -1;
+      if (s1Forced < s2Forced) return 1;
+      // then default flag descending
+      const s1Default = Number(s1?.disposition?.default ?? 0);
+      const s2Default = Number(s2?.disposition?.default ?? 0);
+      if (s1Default > s2Default) return -1;
+      if (s1Default < s2Default) return 1;
+      // if all else is equal lower index comes first
+      if (s1.typeIndex < s2.typeIndex) return -1;
+      if (s1.typeIndex > s2.typeIndex) return 1;
+      // tie
+      return 0;
+    default:
+      // keep order by type index
+      if (s1.typeIndex < s2.typeIndex) return -1;
+      if (s1.typeIndex > s2.typeIndex) return 1;
+      return 0;
   }
 };
