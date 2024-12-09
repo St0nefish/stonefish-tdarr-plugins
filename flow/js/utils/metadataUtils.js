@@ -20,7 +20,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sortStreams = exports.getStreamSort = exports.getTitle = exports.generateTitle = exports.isDescriptive = exports.isCommentary = exports.streamMatchesLanguage = exports.getLanguageName = exports.getLanguageTag = exports.isLanguageUndefined = exports.getEncoder = exports.getChannelCount = exports.getChannelsName = exports.getBitrate = exports.getResolutionName = exports.getTypeCountsMap = exports.getStreamsByType = exports.generateTypeIndexes = exports.getCodecType = void 0;
+exports.getStandardStreamSorter = exports.getStreamSort = exports.getTitle = exports.generateTitle = exports.isStandard = exports.isDescriptive = exports.isCommentary = exports.streamMatchesLanguage = exports.getLanguageName = exports.getLanguageTag = exports.isLanguageUndefined = exports.getEncoder = exports.getChannelCount = exports.getChannelsName = exports.getBitrate = exports.getResolutionName = exports.getTypeCountsMap = exports.getStreamsByType = exports.generateTypeIndexes = exports.getCodecType = void 0;
 // function to get the codec type
 var getCodecType = function (stream) { var _a; return ((_a = stream.codec_type.toLowerCase()) !== null && _a !== void 0 ? _a : ''); };
 exports.getCodecType = getCodecType;
@@ -166,6 +166,9 @@ var isDescriptive = function (stream) {
         || ((_l = (_k = (_j = stream.tags) === null || _j === void 0 ? void 0 : _j.title) === null || _k === void 0 ? void 0 : _k.toLowerCase()) === null || _l === void 0 ? void 0 : _l.includes('sdh')));
 };
 exports.isDescriptive = isDescriptive;
+// function to determine if a stream is standard (not commentary and not descriptive)
+var isStandard = function (stream) { return (!(0, exports.isCommentary)(stream) && !(0, exports.isDescriptive)(stream)); };
+exports.isStandard = isStandard;
 // function to generate the title for a stream
 var generateTitle = function (stream) {
     var _a, _b, _c, _d, _e;
@@ -311,9 +314,14 @@ var getStreamSort = function (codecType) {
                 return 0;
             };
         default:
-            // don't sort
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            return function (o1, o2) { return 0; };
+            // don't sort - rely purely on type index
+            return function (s1, s2) {
+                if (s1.typeIndex < s2.typeIndex)
+                    return -1;
+                if (s1.typeIndex > s2.typeIndex)
+                    return 1;
+                return 0;
+            };
     }
 };
 exports.getStreamSort = getStreamSort;
@@ -325,8 +333,8 @@ exports.getStreamSort = getStreamSort;
 // sorts subtitles by forced, default, neither
 // sorts all other stream types by type index
 var streamTypeOrder = ['video', 'audio', 'subtitle'];
-var sortStreams = function (s1, s2) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+var getStandardStreamSorter = function (s1, s2) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
     // ==== sort first by stream type ==== //
     // get codec type for both streams
     var s1Type = (0, exports.getCodecType)(s1);
@@ -354,15 +362,15 @@ var sortStreams = function (s1, s2) {
     switch (s1Type) {
         case 'video':
             // resolution descending
-            var s1Resolution = Number((s1 === null || s1 === void 0 ? void 0 : s1.width) || 0);
-            var s2Resolution = Number((s2 === null || s2 === void 0 ? void 0 : s2.width) || 0);
+            var s1Resolution = Number((_c = s1 === null || s1 === void 0 ? void 0 : s1.width) !== null && _c !== void 0 ? _c : 0);
+            var s2Resolution = Number((_d = s2 === null || s2 === void 0 ? void 0 : s2.width) !== null && _d !== void 0 ? _d : 0);
             if (s1Resolution > s2Resolution)
                 return -1;
             if (s1Resolution < s2Resolution)
                 return 1;
             // then bitrate descending
-            var s1VideoBitrate = Number(((_c = s1 === null || s1 === void 0 ? void 0 : s1.tags) === null || _c === void 0 ? void 0 : _c.BPS) || 0);
-            var s2VideoBitrate = Number(((_d = s2 === null || s2 === void 0 ? void 0 : s2.tags) === null || _d === void 0 ? void 0 : _d.BPS) || 0);
+            var s1VideoBitrate = Number((_f = (_e = s1 === null || s1 === void 0 ? void 0 : s1.tags) === null || _e === void 0 ? void 0 : _e.BPS) !== null && _f !== void 0 ? _f : 0);
+            var s2VideoBitrate = Number((_h = (_g = s2 === null || s2 === void 0 ? void 0 : s2.tags) === null || _g === void 0 ? void 0 : _g.BPS) !== null && _h !== void 0 ? _h : 0);
             if (s1VideoBitrate > s2VideoBitrate)
                 return -1;
             if (s1VideoBitrate < s2VideoBitrate)
@@ -372,25 +380,30 @@ var sortStreams = function (s1, s2) {
         case 'audio':
             // sort by commentary, descriptive, bitrate (desc)
             // regular streams come before commentary/descriptive
-            if (!(0, exports.isCommentary)(s1) && ((0, exports.isCommentary)(s2) || (0, exports.isDescriptive)(s2)))
+            if ((0, exports.isStandard)(s1) && ((0, exports.isCommentary)(s2) || (0, exports.isDescriptive)(s2)))
                 return -1;
-            if (((0, exports.isCommentary)(s1) || (0, exports.isDescriptive)(s1)) && !(0, exports.isCommentary)(s2))
+            if (((0, exports.isCommentary)(s1) || (0, exports.isDescriptive)(s1)) && (0, exports.isStandard)(s2))
                 return 1;
             // commentary comes before descriptive
-            if ((0, exports.isCommentary)(s1) && (0, exports.isDescriptive)(s2))
+            if (((0, exports.isCommentary)(s1) && !(0, exports.isDescriptive)(s1)) && (0, exports.isDescriptive)(s2))
                 return -1;
-            if ((0, exports.isDescriptive)(s1) && (0, exports.isCommentary)(s2))
+            if ((0, exports.isDescriptive)(s1) && ((0, exports.isCommentary)(s2) && !(0, exports.isDescriptive)(s2)))
                 return 1;
+            // descriptive comes before commentary & descriptive
+            if (((0, exports.isDescriptive)(s1) && !(0, exports.isCommentary)(s1)) && ((0, exports.isCommentary)(s2) && (0, exports.isDescriptive)(s2)))
+                return -1;
+            if (((0, exports.isCommentary)(s1) && (0, exports.isDescriptive)(s1)) && ((0, exports.isDescriptive)(s2) && !(0, exports.isCommentary)(s2)))
+                return -1;
             // channels descending
-            var s1Channels = Number((s1 === null || s1 === void 0 ? void 0 : s1.channels) || 0);
-            var s2Channels = Number((s2 === null || s2 === void 0 ? void 0 : s2.channels) || 0);
+            var s1Channels = Number((_j = s1 === null || s1 === void 0 ? void 0 : s1.channels) !== null && _j !== void 0 ? _j : 0);
+            var s2Channels = Number((_k = s2 === null || s2 === void 0 ? void 0 : s2.channels) !== null && _k !== void 0 ? _k : 0);
             if (s1Channels > s2Channels)
                 return -1;
             if (s1Channels < s2Channels)
                 return 1;
             // then bitrate descending
-            var s1AudioBitrate = Number(((_e = s1 === null || s1 === void 0 ? void 0 : s1.tags) === null || _e === void 0 ? void 0 : _e.BPS) || 0);
-            var s2AudioBitrate = Number(((_f = s2 === null || s2 === void 0 ? void 0 : s2.tags) === null || _f === void 0 ? void 0 : _f.BPS) || 0);
+            var s1AudioBitrate = Number((_m = (_l = s1 === null || s1 === void 0 ? void 0 : s1.tags) === null || _l === void 0 ? void 0 : _l.BPS) !== null && _m !== void 0 ? _m : 0);
+            var s2AudioBitrate = Number((_p = (_o = s2 === null || s2 === void 0 ? void 0 : s2.tags) === null || _o === void 0 ? void 0 : _o.BPS) !== null && _p !== void 0 ? _p : 0);
             if (s1AudioBitrate > s2AudioBitrate)
                 return -1;
             if (s1AudioBitrate < s2AudioBitrate)
@@ -400,25 +413,30 @@ var sortStreams = function (s1, s2) {
         case 'subtitle':
             // sort by commentary/descriptive/default/forced
             // regular streams come before commentary/descriptive
-            if (!(0, exports.isCommentary)(s1) && ((0, exports.isCommentary)(s2) || (0, exports.isDescriptive)(s2)))
+            if ((0, exports.isStandard)(s1) && ((0, exports.isCommentary)(s2) || (0, exports.isDescriptive)(s2)))
                 return -1;
-            if (((0, exports.isCommentary)(s1) || (0, exports.isDescriptive)(s1)) && !(0, exports.isCommentary)(s2))
+            if (((0, exports.isCommentary)(s1) || (0, exports.isDescriptive)(s1)) && (0, exports.isStandard)(s2))
                 return 1;
             // commentary comes before descriptive
-            if ((0, exports.isCommentary)(s1) && (0, exports.isDescriptive)(s2))
+            if (((0, exports.isCommentary)(s1) && !(0, exports.isDescriptive)(s1)) && (0, exports.isDescriptive)(s2))
                 return -1;
-            if ((0, exports.isDescriptive)(s1) && (0, exports.isCommentary)(s2))
+            if ((0, exports.isDescriptive)(s1) && ((0, exports.isCommentary)(s2) && !(0, exports.isDescriptive)(s2)))
                 return 1;
+            // descriptive comes before commentary & descriptive
+            if (((0, exports.isDescriptive)(s1) && !(0, exports.isCommentary)(s1)) && ((0, exports.isCommentary)(s2) && (0, exports.isDescriptive)(s2)))
+                return -1;
+            if (((0, exports.isCommentary)(s1) && (0, exports.isDescriptive)(s1)) && ((0, exports.isDescriptive)(s2) && !(0, exports.isCommentary)(s2)))
+                return -1;
             // forced flag descending
-            var s1Forced = Number(((_g = s1 === null || s1 === void 0 ? void 0 : s1.disposition) === null || _g === void 0 ? void 0 : _g.forced) || 0);
-            var s2Forced = Number(((_h = s2 === null || s2 === void 0 ? void 0 : s2.disposition) === null || _h === void 0 ? void 0 : _h.forced) || 0);
+            var s1Forced = Number((_r = (_q = s1 === null || s1 === void 0 ? void 0 : s1.disposition) === null || _q === void 0 ? void 0 : _q.forced) !== null && _r !== void 0 ? _r : 0);
+            var s2Forced = Number((_t = (_s = s2 === null || s2 === void 0 ? void 0 : s2.disposition) === null || _s === void 0 ? void 0 : _s.forced) !== null && _t !== void 0 ? _t : 0);
             if (s1Forced > s2Forced)
                 return -1;
             if (s1Forced < s2Forced)
                 return 1;
             // then default flag descending
-            var s1Default = Number(((_j = s1 === null || s1 === void 0 ? void 0 : s1.disposition) === null || _j === void 0 ? void 0 : _j.default) || 0);
-            var s2Default = Number(((_k = s2 === null || s2 === void 0 ? void 0 : s2.disposition) === null || _k === void 0 ? void 0 : _k.default) || 0);
+            var s1Default = Number((_v = (_u = s1 === null || s1 === void 0 ? void 0 : s1.disposition) === null || _u === void 0 ? void 0 : _u.default) !== null && _v !== void 0 ? _v : 0);
+            var s2Default = Number((_x = (_w = s2 === null || s2 === void 0 ? void 0 : s2.disposition) === null || _w === void 0 ? void 0 : _w.default) !== null && _x !== void 0 ? _x : 0);
             if (s1Default > s2Default)
                 return -1;
             if (s1Default < s2Default)
@@ -439,4 +457,4 @@ var sortStreams = function (s1, s2) {
             return 0;
     }
 };
-exports.sortStreams = sortStreams;
+exports.getStandardStreamSorter = getStandardStreamSorter;

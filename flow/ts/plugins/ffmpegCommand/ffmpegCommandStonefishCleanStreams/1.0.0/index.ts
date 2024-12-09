@@ -350,6 +350,7 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   const defaultLanguage = keepLanguages[0] ?? 'eng';
 
   // ToDo - remove
+  args.jobLog(`library settings:\n${JSON.stringify(args.librarySettings)}`);
   args.jobLog(`input file:\n${JSON.stringify(args.inputFileObj)}`);
 
   // grab a handle to streams

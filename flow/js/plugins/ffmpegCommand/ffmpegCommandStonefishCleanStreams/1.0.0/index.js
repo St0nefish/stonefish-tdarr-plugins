@@ -257,6 +257,7 @@ var plugin = function (args) {
     var keepLanguages = String(args.inputs.keepLanguages).split(',').map(function (langTag) { return langTag.trim(); });
     var defaultLanguage = (_a = keepLanguages[0]) !== null && _a !== void 0 ? _a : 'eng';
     // ToDo - remove
+    args.jobLog("library settings:\n".concat(JSON.stringify(args.librarySettings)));
     args.jobLog("input file:\n".concat(JSON.stringify(args.inputFileObj)));
     // grab a handle to streams
     var streams = args.variables.ffmpegCommand.streams;

@@ -26,7 +26,7 @@ var details = function () { return ({
 }); };
 exports.details = details;
 // function to get string displaying stream order
-var getStreamOrderStr = function (streams) { return (streams.map(function (stream, index) { return ("".concat(index, ":").concat((0, metadataUtils_1.getCodecType)(stream), ":").concat((0, metadataUtils_1.getTitle)(stream))); }).join(', ')); };
+var getStreamOrderStr = function (streams) { return (streams.map(function (stream, index) { return ("'".concat(index, ":").concat((0, metadataUtils_1.getCodecType)(stream), ":").concat((0, metadataUtils_1.getTitle)(stream), "'")); }).join(', ')); };
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var plugin = function (args) {
     var lib = require('../../../../../methods/lib')();
@@ -38,55 +38,12 @@ var plugin = function (args) {
     var streams = args.variables.ffmpegCommand.streams;
     // generate type indexes
     (0, metadataUtils_1.generateTypeIndexes)(streams);
-    // track input stream state to compare later
-    var originalStreams = JSON.stringify(streams);
-    // generate a map of streams grouped by codec type
-    var mapByType = (0, metadataUtils_1.getStreamsByType)(streams);
     // log input state
     args.jobLog("input stream order: {".concat(getStreamOrderStr(streams), "}"));
+    // track input stream state to compare later
+    var originalStreams = JSON.stringify(streams);
     // create array of post-sort streams
-    var sortedStreams = [];
-    // iterate primary stream types (in order) to add back to sorted array
-    ['video', 'audio', 'subtitle'].forEach(function (codecType) {
-        var typeStreams = mapByType[codecType];
-        if (typeStreams && typeStreams.length > 0) {
-            // at least one stream of this type - sort then iterate streams of this type
-            typeStreams.sort((0, metadataUtils_1.getStreamSort)(codecType)).forEach(function (stream, tIndex) {
-                var _a;
-                // set new index of this stream
-                // eslint-disable-next-line no-param-reassign
-                stream.index = sortedStreams.length;
-                // also set new type index
-                // eslint-disable-next-line no-param-reassign
-                stream.typeIndex = tIndex;
-                // add to our sorted array
-                sortedStreams.push(stream);
-                args.jobLog("added [".concat(codecType, "] stream:[").concat((_a = stream.tags) === null || _a === void 0 ? void 0 : _a.title, "]"));
-            });
-            // delete this type from the map so we can handle leftovers later
-            delete mapByType[codecType];
-        }
-    });
-    // handle any remaining stream types we may have missed (why are these still here?)
-    Object.keys(mapByType)
-        // filter to types with streams
-        .filter(function (key) { return mapByType[key] && mapByType[key].length > 0; })
-        // iterate to add to the end of our sorted map
-        .forEach(function (codecType) {
-        // add all remaining streams, leave in existing sort order
-        mapByType[codecType].forEach(function (stream, tIndex) {
-            var _a;
-            // set new index of this stream
-            // eslint-disable-next-line no-param-reassign
-            stream.index = sortedStreams.length;
-            // also set new type index
-            // eslint-disable-next-line no-param-reassign
-            stream.typeIndex = tIndex;
-            // add to our sorted array
-            sortedStreams.push(stream);
-            args.jobLog("added [".concat(codecType, "] stream:[").concat((_a = stream === null || stream === void 0 ? void 0 : stream.tags) === null || _a === void 0 ? void 0 : _a.title, "]"));
-        });
-    });
+    var sortedStreams = streams.sort(metadataUtils_1.getStandardStreamSorter);
     // check if new order matches original
     if (JSON.stringify(sortedStreams) === originalStreams) {
         args.jobLog('file already sorted - no transcode required');
