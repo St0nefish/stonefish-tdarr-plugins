@@ -18,6 +18,7 @@ import {
   isDescriptive,
   streamMatchesLanguage,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
+import { IFileObject } from '../../../../FlowHelpers/1.0.0/interfaces/synced/IFileObject';
 
 /* eslint-disable no-param-reassign */
 const details = (): IpluginDetails => ({
@@ -330,7 +331,7 @@ const details = (): IpluginDetails => ({
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
+const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const lib = require('../../../../../methods/lib')();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   args.inputs = lib.loadDefaultValues(args.inputs, details);
@@ -352,6 +353,18 @@ const plugin = (args: IpluginInputArgs): IpluginOutputArgs => {
   // ToDo - remove
   args.jobLog(`library settings:\n${JSON.stringify(args.librarySettings)}`);
   args.jobLog(`input file:\n${JSON.stringify(args.inputFileObj)}`);
+  // scan the file to get mediainfo
+  let fileObj: IFileObject = args.inputFileObj;
+  if (args.inputFileObj && args.scanIndividualFile) {
+    args.jobLog(`scanning file: ${args.inputFileObj._id}`);
+    fileObj = await args.scanIndividualFile(args.inputFileObj, {
+      exifToolScan: true,
+      mediaInfoScan: true,
+      closedCaptionScan: false,
+    });
+  }
+  args.jobLog(`file object after scan:\n${JSON.stringify(fileObj)}`);
+  // ToDo - remove
 
   // grab a handle to streams
   const { streams } = args.variables.ffmpegCommand;
