@@ -20,8 +20,8 @@ export const getMediaInfo = async (args: IpluginInputArgs): Promise<ImediaInfo |
 };
 
 // function to get the correct media info track for the input stream - assumes indexes are untouched
-export const getMediaInfoTrack = (stream: IffmpegCommandStream, mediaInfo?: ImediaInfo) => (
-  mediaInfo?.track?.[stream.index] ?? undefined
+export const getMediaInfoTrack = (stream: IffmpegCommandStream, mediaInfo?: any) => (
+  mediaInfo?.track?.filter((item: any) => item.StreamOrder === stream.index) ?? undefined
 );
 
 // function to get the codec type

@@ -1,5 +1,7 @@
 /* eslint-disable max-len */
 
+import path from 'path';
+import fs from 'fs';
 import fileMoveOrCopy from '../../../../FlowHelpers/1.0.0/fileMoveOrCopy';
 import { getContainer, getFileAbosluteDir, getFileName } from '../../../../FlowHelpers/1.0.0/fileUtils';
 import {
@@ -186,24 +188,26 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const lib = require('../../../../../methods/lib')();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   args.inputs = lib.loadDefaultValues(args.inputs, details);
-  // import required libraries
-  const fs = require('fs');
-  const path = require('path');
 
   args.jobLog(`input file:\n${JSON.stringify(args.inputFileObj)}`);
   args.jobLog(`original file:\n${JSON.stringify(args.originalLibraryFile)}`);
 
   // get file name and path from input object
-  const fileName = getFileName(args.inputFileObj._id);
-  const fileDir = getFileAbosluteDir(args.inputFileObj._id);
-  // get the file name root by removing the extension
-  const fileNameParts: string[] = fileName.split('.');
-  fileNameParts.pop();
-  const fileNameRoot = fileNameParts.join('.');
+  const filePath = path.parse(args.inputFileObj._id);
+  const fileName = filePath.name;
+  const fileDir = filePath.dir;
 
-  args.jobLog(`looking for files to rename in [${fileDir}] with name like [${fileNameRoot}]`);
+  args.jobLog(`looking for files to rename in [${fileDir}] with name like [${fileName}]`);
 
-  if (fileName === fileNameRoot) {
+  // get a list of other files in the directory
+  const files: string[] = [];
+  fs.readdirSync(fileDir).forEach((file: string) => {
+    files.push(file);
+  });
+
+  args.jobLog(`found files: ${JSON.stringify(files)}`);
+
+  if (fileName === '') {
     await fileMoveOrCopy({
       operation: 'move',
       sourcePath: args.inputFileObj._id,

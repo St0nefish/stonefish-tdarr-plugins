@@ -41,8 +41,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.plugin = exports.details = void 0;
+var path_1 = __importDefault(require("path"));
+var fs_1 = __importDefault(require("fs"));
 var fileMoveOrCopy_1 = __importDefault(require("../../../../FlowHelpers/1.0.0/fileMoveOrCopy"));
-var fileUtils_1 = require("../../../../FlowHelpers/1.0.0/fileUtils");
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 var details = function () { return ({
     name: 'Rename Files',
@@ -157,24 +158,25 @@ var details = function () { return ({
 exports.details = details;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function () {
-    var lib, fs, path, fileName, fileDir, fileNameParts, fileNameRoot;
+    var lib, filePath, fileName, fileDir, files;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 lib = require('../../../../../methods/lib')();
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
                 args.inputs = lib.loadDefaultValues(args.inputs, details);
-                fs = require('fs');
-                path = require('path');
                 args.jobLog("input file:\n".concat(JSON.stringify(args.inputFileObj)));
                 args.jobLog("original file:\n".concat(JSON.stringify(args.originalLibraryFile)));
-                fileName = (0, fileUtils_1.getFileName)(args.inputFileObj._id);
-                fileDir = (0, fileUtils_1.getFileAbosluteDir)(args.inputFileObj._id);
-                fileNameParts = fileName.split('.');
-                fileNameParts.pop();
-                fileNameRoot = fileNameParts.join('.');
-                args.jobLog("looking for files to rename in [".concat(fileDir, "] with name like [").concat(fileNameRoot, "]"));
-                if (!(fileName === fileNameRoot)) return [3 /*break*/, 2];
+                filePath = path_1.default.parse(args.inputFileObj._id);
+                fileName = filePath.name;
+                fileDir = filePath.dir;
+                args.jobLog("looking for files to rename in [".concat(fileDir, "] with name like [").concat(fileName, "]"));
+                files = [];
+                fs_1.default.readdirSync(fileDir).forEach(function (file) {
+                    files.push(file);
+                });
+                args.jobLog("found files: ".concat(JSON.stringify(files)));
+                if (!(fileName === '')) return [3 /*break*/, 2];
                 return [4 /*yield*/, (0, fileMoveOrCopy_1.default)({
                         operation: 'move',
                         sourcePath: args.inputFileObj._id,

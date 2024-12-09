@@ -74,7 +74,7 @@ exports.getMediaInfo = getMediaInfo;
 // function to get the correct media info track for the input stream - assumes indexes are untouched
 var getMediaInfoTrack = function (stream, mediaInfo) {
     var _a, _b;
-    return ((_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a[stream.index]) !== null && _b !== void 0 ? _b : undefined);
+    return ((_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (item) { return item.StreamOrder === stream.index; })) !== null && _b !== void 0 ? _b : undefined);
 };
 exports.getMediaInfoTrack = getMediaInfoTrack;
 // function to get the codec type

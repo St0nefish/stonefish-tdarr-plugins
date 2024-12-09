@@ -6,11 +6,11 @@ import {
   IpluginOutputArgs,
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import {
-  getBitrate,
+  getBitrate, getBitrateText,
   getChannelsName,
   getCodecType,
   getLanguageTag,
-  getMediaInfo,
+  getMediaInfo, getMediaInfoTrack,
   getResolutionName,
   getStreamSorter,
   getTitleForStream,
@@ -399,9 +399,9 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const getSortInfo = (stream: IffmpegCommandStream): string => {
     switch (getCodecType(stream)) {
       case 'video':
-        return `${getResolutionName(stream)} ${getBitrate(stream)}`;
+        return `${getResolutionName(stream)} ${getBitrateText(stream, getMediaInfoTrack(stream, mediaInfo))}`;
       case 'audio':
-        return `${getBitrate(stream)}`;
+        return `${getBitrateText(stream)}`;
       case 'subtitle':
         return `index:${stream.typeIndex}`;
       default:
@@ -481,8 +481,8 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
     if (stream.removed) {
       countRemoved(stream);
       args.jobLog(
-        `removing [${codecType}] stream [s:${stream.index}:a:${stream.typeIndex}] 
-        [${getTitleForStream(stream, mediaInfo?.track?.[stream.index])}] - ${stream.removeReason}`,
+        `removing [${codecType}] stream [s:${stream.index}:a:${stream.typeIndex}] `
+        + `[${getTitleForStream(stream, mediaInfo?.track?.[stream.index])}] - ${stream.removeReason}`,
       );
     } else {
       addToDedupeMap(stream);
@@ -503,9 +503,9 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
                   // keep the first entry, discard the rest
                   if (index > 0) {
                     args.jobLog(
-                      `removing [${codecType}] stream [s:${stream.index}:a:${stream.typeIndex}] 
-                      [${getTitleForStream(stream, mediaInfo?.track?.[stream.index])}] 
-                      - stream is not best option for group-by-key:[${groupByKey}] sort info:[${getSortInfo(stream)}]`,
+                      `removing [${codecType}] stream [s:${stream.index}:a:${stream.typeIndex}] `
+                      + `[${getTitleForStream(stream, mediaInfo?.track?.[stream.index])}] - stream is not best option `
+                      + `for group-by-key:[${groupByKey}] and sort info:[${getSortInfo(stream)}]`,
                     );
                     stream.removed = true;
                     countRemoved(stream);

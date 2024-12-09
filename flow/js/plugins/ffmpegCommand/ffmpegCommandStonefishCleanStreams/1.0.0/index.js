@@ -340,9 +340,9 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 getSortInfo = function (stream) {
                     switch ((0, metadataUtils_1.getCodecType)(stream)) {
                         case 'video':
-                            return "".concat((0, metadataUtils_1.getResolutionName)(stream), " ").concat((0, metadataUtils_1.getBitrate)(stream));
+                            return "".concat((0, metadataUtils_1.getResolutionName)(stream), " ").concat((0, metadataUtils_1.getBitrateText)(stream, (0, metadataUtils_1.getMediaInfoTrack)(stream, mediaInfo)));
                         case 'audio':
-                            return "".concat((0, metadataUtils_1.getBitrate)(stream));
+                            return "".concat((0, metadataUtils_1.getBitrateText)(stream));
                         case 'subtitle':
                             return "index:".concat(stream.typeIndex);
                         default:
@@ -426,7 +426,8 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     // handle counting and de-dupe map
                     if (stream.removed) {
                         countRemoved(stream);
-                        args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] \n        [").concat((0, metadataUtils_1.getTitleForStream)(stream, (_d = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _d === void 0 ? void 0 : _d[stream.index]), "] - ").concat(stream.removeReason));
+                        args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] ")
+                            + "[".concat((0, metadataUtils_1.getTitleForStream)(stream, (_d = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _d === void 0 ? void 0 : _d[stream.index]), "] - ").concat(stream.removeReason));
                     }
                     else {
                         addToDedupeMap(stream);
@@ -447,7 +448,9 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                                     var _a;
                                     // keep the first entry, discard the rest
                                     if (index > 0) {
-                                        args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] \n                      [").concat((0, metadataUtils_1.getTitleForStream)(stream, (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a[stream.index]), "] \n                      - stream is not best option for group-by-key:[").concat(groupByKey, "] sort info:[").concat(getSortInfo(stream), "]"));
+                                        args.jobLog("removing [".concat(codecType, "] stream [s:").concat(stream.index, ":a:").concat(stream.typeIndex, "] ")
+                                            + "[".concat((0, metadataUtils_1.getTitleForStream)(stream, (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a[stream.index]), "] - stream is not best option ")
+                                            + "for group-by-key:[".concat(groupByKey, "] and sort info:[").concat(getSortInfo(stream), "]"));
                                         stream.removed = true;
                                         countRemoved(stream);
                                     }
