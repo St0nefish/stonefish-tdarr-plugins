@@ -113,13 +113,14 @@ exports.getTypeCountsMap = getTypeCountsMap;
 // map of resolution widths to standard resolution name
 var resolutionMap = {
     640: '480p',
+    1024: '576p',
     1280: '720p',
     1920: '1080p',
     2560: '1440p',
-    3840: '4k UHD',
-    4096: 'DCI 4k',
-    7680: '8k UHD',
-    8192: '8k',
+    3840: '2160p',
+    4096: '2160p',
+    7680: '4320p',
+    8192: '4320p',
 };
 // function to get the resolution name from a stream
 var getResolutionName = function (stream) { return (resolutionMap[Number(stream.width)]); };
@@ -167,6 +168,7 @@ var channelMap = {
     8: '7.1',
     7: '6.1',
     6: '5.1',
+    3: '2.1',
     2: '2.0',
     1: '1.0',
 };

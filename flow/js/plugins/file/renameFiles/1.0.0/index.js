@@ -44,6 +44,7 @@ exports.plugin = exports.details = void 0;
 var path_1 = __importDefault(require("path"));
 var fs_1 = __importDefault(require("fs"));
 var fileMoveOrCopy_1 = __importDefault(require("../../../../FlowHelpers/1.0.0/fileMoveOrCopy"));
+var metadataUtils_1 = require("../../../../FlowHelpers/1.0.0/local/metadataUtils");
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 var details = function () { return ({
     name: 'Rename Files',
@@ -158,35 +159,112 @@ var details = function () { return ({
 exports.details = details;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function () {
-    var lib, filePath, fileName, fileDir, files;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var lib, replaceVideoCodec, replaceVideoRes, replaceAudioCodec, replaceAudioChannels, renameOtherFiles, supportedExtensions, metadataDelimiter, streams, mediaInfo, videoCodecRegex, videoResRegex, audioCodecRegex, audioChannelsRegex, filePath, fileFullName, fileBaseName, fileDir, files;
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
                 lib = require('../../../../../methods/lib')();
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
                 args.inputs = lib.loadDefaultValues(args.inputs, details);
+                replaceVideoCodec = Boolean(args.inputs.replaceVideoCodec);
+                replaceVideoRes = Boolean(args.inputs.replaceVideoRes);
+                replaceAudioCodec = Boolean(args.inputs.replaceAudioCodec);
+                replaceAudioChannels = Boolean(args.inputs.replaceAudioChannels);
+                renameOtherFiles = Boolean(args.inputs.renameOtherFiles);
+                supportedExtensions = String(args.inputs.fileExtensions)
+                    .split(',').map(function (ext) { return ext === null || ext === void 0 ? void 0 : ext.trim(); }).filter(function (item, index, items) { return items.indexOf(item) === index; });
+                metadataDelimiter = (_a = String(args.inputs.metadataDelimiter)) !== null && _a !== void 0 ? _a : undefined;
+                streams = args.variables.ffmpegCommand.streams;
+                return [4 /*yield*/, (0, metadataUtils_1.getMediaInfo)(args)];
+            case 1:
+                mediaInfo = _b.sent();
+                videoCodecRegex = /(h264|h265|x264|x265|avc|hevc|mpeg2|av1)/gi;
+                videoResRegex = /(480p|576p|720p|1080p|1440p|2160p|4320p)/gi;
+                audioCodecRegex = /(aac|ac3|eac3|flac|mp2|mp3|truehd|dts[-. ]hd[-. ]ma|dts[-. ]hd[-. ]es|dts[-. ]hd[-. ]hra|dts[-. ]express|dts)/gi;
+                audioChannelsRegex = /(1.0|2.0|2.1|3.0|3.1|5.1|6.1|7.1|)/gi;
                 args.jobLog("input file:\n".concat(JSON.stringify(args.inputFileObj)));
                 args.jobLog("original file:\n".concat(JSON.stringify(args.originalLibraryFile)));
                 filePath = path_1.default.parse(args.inputFileObj._id);
-                fileName = filePath.name;
+                fileFullName = filePath.base;
+                fileBaseName = filePath.name;
                 fileDir = filePath.dir;
-                args.jobLog("looking for files to rename in [".concat(fileDir, "] with name like [").concat(fileName, "]"));
-                files = [];
-                fs_1.default.readdirSync(fileDir).forEach(function (file) {
-                    files.push(file);
+                args.jobLog("looking for files to rename in [".concat(fileDir, "] with name like [").concat(fileBaseName, "]"));
+                files = [args.inputFileObj._id];
+                // if enabled add other files in the directory
+                if (renameOtherFiles) {
+                    fs_1.default.readdirSync(fileDir).forEach(function (item) {
+                        var otherPath = path_1.default.parse("".concat(fileDir, "/").concat(item));
+                        if (otherPath // able to parse the path
+                            && otherPath.base !== fileFullName // not our original video file
+                            && (supportedExtensions.length === 0 || supportedExtensions.includes(otherPath.ext)) // passes extension filter
+                        ) {
+                            files.push(otherPath.base);
+                        }
+                    });
+                }
+                // trim entries, remove empty, and ensure unique
+                files.map(function (item) { return item === null || item === void 0 ? void 0 : item.trim(); }).filter(function (item) { return item; })
+                    .filter(function (item, index, items) { return items.indexOf(item) === index; });
+                args.jobLog("files to rename: ".concat(JSON.stringify(files)));
+                files.forEach(function (originalName) {
+                    var newName = originalName;
+                    var originalSuffix;
+                    // if using the metadata delimiter parse only the end of the file
+                    if (metadataDelimiter) {
+                        newName = originalName.substring(originalName.indexOf(metadataDelimiter));
+                        originalSuffix = newName;
+                    }
+                    // if any video-based rename is enabled
+                    if (replaceVideoCodec || replaceVideoRes) {
+                        // first find the first video stream and get its media info
+                        var videoStream = streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
+                        var videoMediaInfo = (0, metadataUtils_1.getMediaInfoTrack)(videoStream, mediaInfo);
+                        // ToDo - remove logging
+                        args.jobLog("using video media info:\n".concat(JSON.stringify(videoMediaInfo)));
+                        // ToDo - remove logging
+                        // handle video codec replacement if enabled
+                        if (replaceVideoCodec) {
+                            newName = newName.replace(videoCodecRegex, (0, metadataUtils_1.getCodecName)(videoStream, videoMediaInfo));
+                        }
+                        // handle video resolution replacement if enabled
+                        if (replaceVideoRes) {
+                            newName = newName.replace(videoResRegex, (0, metadataUtils_1.getResolutionName)(videoStream));
+                        }
+                    }
+                    if (replaceAudioCodec || replaceAudioChannels) {
+                        var audioStream = streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
+                        var audioMediaInfo = (0, metadataUtils_1.getMediaInfoTrack)(audioStream, mediaInfo);
+                        // ToDo - remove logging
+                        args.jobLog("using audio media info:\n".concat(JSON.stringify(audioMediaInfo)));
+                        // ToDo - remove logging
+                        // handle audio codec replacement if enabled
+                        if (replaceAudioCodec) {
+                            newName = newName.replace(audioCodecRegex, (0, metadataUtils_1.getCodecName)(audioStream, audioMediaInfo));
+                        }
+                        // handle audio channels replacement if enabled
+                        if (replaceAudioChannels) {
+                            newName = newName.replace(audioChannelsRegex, (0, metadataUtils_1.getChannelsName)(audioStream));
+                        }
+                    }
+                    // if using the metadata delimiter now replace the entire original suffix with the new one
+                    if (metadataDelimiter && originalSuffix) {
+                        newName = originalName.replace(originalSuffix, newName);
+                    }
+                    args.jobLog("renaming [".concat(originalName, "] to [").concat(newName, "]"));
+                    // ToDo - actually rename
                 });
-                args.jobLog("found files: ".concat(JSON.stringify(files)));
-                if (!(fileName === '')) return [3 /*break*/, 2];
+                if (!(fileBaseName === '')) return [3 /*break*/, 3];
                 return [4 /*yield*/, (0, fileMoveOrCopy_1.default)({
                         operation: 'move',
                         sourcePath: args.inputFileObj._id,
-                        destinationPath: "".concat(fileDir, "/").concat(fileName),
+                        destinationPath: "".concat(fileDir, "/").concat(fileBaseName),
                         args: args,
                     })];
-            case 1:
-                _a.sent();
-                _a.label = 2;
-            case 2: 
+            case 2:
+                _b.sent();
+                _b.label = 3;
+            case 3: 
             // let newName = String(args.inputs.fileRename).trim();
             // newName = newName.replace(/\${fileName}/g, fileName);
             // newName = newName.replace(/\${container}/g, getContainer(args.inputFileObj._id));

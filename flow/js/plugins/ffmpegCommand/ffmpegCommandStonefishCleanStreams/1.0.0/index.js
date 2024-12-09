@@ -274,7 +274,7 @@ var details = function () { return ({
 exports.details = details;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function () {
-    var lib, removeVideo, removeAudio, removeSubtitles, removeDuplicates, removeOther, removeCommentaryAudio, removeCommentarySubs, removeDescriptiveAudio, removeDescriptiveSubs, keepLanguages, defaultLanguage, mediaInfo, streams, inputStreamCounts, streamRemovedMap, countRemoved, getDedupeGroupKey, getSortInfo, dedupeMap, addToDedupeMap;
+    var lib, removeVideo, removeAudio, removeSubtitles, removeDuplicates, removeOther, removeCommentaryAudio, removeCommentarySubs, removeDescriptiveAudio, removeDescriptiveSubs, keepLanguages, defaultLanguage, streams, mediaInfo, inputStreamCounts, streamRemovedMap, countRemoved, getDedupeGroupKey, getSortInfo, dedupeMap, addToDedupeMap;
     var _a;
     return __generator(this, function (_b) {
         switch (_b.label) {
@@ -296,12 +296,12 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 keepLanguages = String(args.inputs.keepLanguages)
                     .split(',').filter(function (langTag) { return langTag; }).map(function (langTag) { return langTag.trim(); });
                 defaultLanguage = (_a = keepLanguages[0]) !== null && _a !== void 0 ? _a : 'eng';
-                return [4 /*yield*/, (0, metadataUtils_1.getMediaInfo)(args)];
-            case 1:
-                mediaInfo = _b.sent();
                 streams = args.variables.ffmpegCommand.streams;
                 // generate type indexes
                 (0, metadataUtils_1.setTypeIndexes)(streams);
+                return [4 /*yield*/, (0, metadataUtils_1.getMediaInfo)(args)];
+            case 1:
+                mediaInfo = _b.sent();
                 inputStreamCounts = (0, metadataUtils_1.getTypeCountsMap)(streams);
                 args.jobLog("input stream counts: ".concat(JSON.stringify(inputStreamCounts)));
                 streamRemovedMap = {

@@ -1,14 +1,22 @@
 /* eslint-disable max-len */
 
-import path from 'path';
+import path, { ParsedPath } from 'path';
 import fs from 'fs';
 import fileMoveOrCopy from '../../../../FlowHelpers/1.0.0/fileMoveOrCopy';
-import { getContainer, getFileAbosluteDir, getFileName } from '../../../../FlowHelpers/1.0.0/fileUtils';
 import {
+  IffmpegCommandStream,
   IpluginDetails,
   IpluginInputArgs,
   IpluginOutputArgs,
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
+import {
+  getChannelsName,
+  getCodecName,
+  getCodecType,
+  getMediaInfo, getMediaInfoTrack,
+  getResolutionName,
+} from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
+import { ImediaInfo } from '../../../../FlowHelpers/1.0.0/interfaces/synced/IFileObject';
 
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 const details = (): IpluginDetails => ({
@@ -188,30 +196,112 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const lib = require('../../../../../methods/lib')();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   args.inputs = lib.loadDefaultValues(args.inputs, details);
+  // get input config
+  const replaceVideoCodec = Boolean(args.inputs.replaceVideoCodec);
+  const replaceVideoRes = Boolean(args.inputs.replaceVideoRes);
+  const replaceAudioCodec = Boolean(args.inputs.replaceAudioCodec);
+  const replaceAudioChannels = Boolean(args.inputs.replaceAudioChannels);
+  const renameOtherFiles = Boolean(args.inputs.renameOtherFiles);
+  const supportedExtensions: string[] = String(args.inputs.fileExtensions)
+    .split(',').map((ext) => ext?.trim()).filter((item, index, items) => items.indexOf(item) === index);
+  const metadataDelimiter = String(args.inputs.metadataDelimiter) ?? undefined;
+  // grab a handle to streams
+  const { streams } = args.variables.ffmpegCommand;
+  // execute a media info scan
+  const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
+  // regexes for replacing
+  const videoCodecRegex = /(h264|h265|x264|x265|avc|hevc|mpeg2|av1)/gi;
+  const videoResRegex = /(480p|576p|720p|1080p|1440p|2160p|4320p)/gi;
+  const audioCodecRegex = /(aac|ac3|eac3|flac|mp2|mp3|truehd|dts[-. ]hd[-. ]ma|dts[-. ]hd[-. ]es|dts[-. ]hd[-. ]hra|dts[-. ]express|dts)/gi;
+  const audioChannelsRegex = /(1.0|2.0|2.1|3.0|3.1|5.1|6.1|7.1|)/gi;
 
   args.jobLog(`input file:\n${JSON.stringify(args.inputFileObj)}`);
   args.jobLog(`original file:\n${JSON.stringify(args.originalLibraryFile)}`);
 
   // get file name and path from input object
-  const filePath = path.parse(args.inputFileObj._id);
-  const fileName = filePath.name;
-  const fileDir = filePath.dir;
+  const filePath: ParsedPath = path.parse(args.inputFileObj._id);
+  const fileFullName: string = filePath.base;
+  const fileBaseName: string = filePath.name;
+  const fileDir: string = filePath.dir;
 
-  args.jobLog(`looking for files to rename in [${fileDir}] with name like [${fileName}]`);
+  args.jobLog(`looking for files to rename in [${fileDir}] with name like [${fileBaseName}]`);
 
-  // get a list of other files in the directory
-  const files: string[] = [];
-  fs.readdirSync(fileDir).forEach((file: string) => {
-    files.push(file);
+  // build a list of other files in the directory - start with our video file
+  const files: string[] = [args.inputFileObj._id];
+  // if enabled add other files in the directory
+  if (renameOtherFiles) {
+    fs.readdirSync(fileDir).forEach((item: string) => {
+      const otherPath: ParsedPath = path.parse(`${fileDir}/${item}`);
+      if (otherPath // able to parse the path
+        && otherPath.base !== fileFullName // not our original video file
+        && (supportedExtensions.length === 0 || supportedExtensions.includes(otherPath.ext)) // passes extension filter
+      ) {
+        files.push(otherPath.base);
+      }
+    });
+  }
+  // trim entries, remove empty, and ensure unique
+  files.map((item) => item?.trim()).filter((item) => item)
+    .filter((item, index, items) => items.indexOf(item) === index);
+
+  args.jobLog(`files to rename: ${JSON.stringify(files)}`);
+
+  files.forEach((originalName) => {
+    let newName: string = originalName;
+    let originalSuffix: string | undefined;
+    // if using the metadata delimiter parse only the end of the file
+    if (metadataDelimiter) {
+      newName = originalName.substring(originalName.indexOf(metadataDelimiter));
+      originalSuffix = newName;
+    }
+    // if any video-based rename is enabled
+    if (replaceVideoCodec || replaceVideoRes) {
+      // first find the first video stream and get its media info
+      const videoStream: IffmpegCommandStream = streams.filter((stream) => getCodecType(stream) === 'video')[0];
+      const videoMediaInfo = getMediaInfoTrack(videoStream, mediaInfo);
+
+      // ToDo - remove logging
+      args.jobLog(`using video media info:\n${JSON.stringify(videoMediaInfo)}`);
+      // ToDo - remove logging
+      // handle video codec replacement if enabled
+      if (replaceVideoCodec) {
+        newName = newName.replace(videoCodecRegex, getCodecName(videoStream, videoMediaInfo));
+      }
+      // handle video resolution replacement if enabled
+      if (replaceVideoRes) {
+        newName = newName.replace(videoResRegex, getResolutionName(videoStream));
+      }
+    }
+    if (replaceAudioCodec || replaceAudioChannels) {
+      const audioStream: IffmpegCommandStream = streams.filter((stream) => getCodecType(stream) === 'video')[0];
+      const audioMediaInfo = getMediaInfoTrack(audioStream, mediaInfo);
+
+      // ToDo - remove logging
+      args.jobLog(`using audio media info:\n${JSON.stringify(audioMediaInfo)}`);
+      // ToDo - remove logging
+
+      // handle audio codec replacement if enabled
+      if (replaceAudioCodec) {
+        newName = newName.replace(audioCodecRegex, getCodecName(audioStream, audioMediaInfo));
+      }
+      // handle audio channels replacement if enabled
+      if (replaceAudioChannels) {
+        newName = newName.replace(audioChannelsRegex, getChannelsName(audioStream));
+      }
+    }
+    // if using the metadata delimiter now replace the entire original suffix with the new one
+    if (metadataDelimiter && originalSuffix) {
+      newName = originalName.replace(originalSuffix, newName);
+    }
+    args.jobLog(`renaming [${originalName}] to [${newName}]`);
+    // ToDo - actually rename
   });
 
-  args.jobLog(`found files: ${JSON.stringify(files)}`);
-
-  if (fileName === '') {
+  if (fileBaseName === '') {
     await fileMoveOrCopy({
       operation: 'move',
       sourcePath: args.inputFileObj._id,
-      destinationPath: `${fileDir}/${fileName}`,
+      destinationPath: `${fileDir}/${fileBaseName}`,
       args,
     });
   }

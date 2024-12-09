@@ -352,12 +352,12 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const keepLanguages: string[] = String(args.inputs.keepLanguages)
     .split(',').filter((langTag) => langTag).map((langTag: string) => langTag.trim());
   const defaultLanguage = keepLanguages[0] ?? 'eng';
-  // execute a media info scan
-  const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
   // grab a handle to streams
   const { streams } = args.variables.ffmpegCommand;
   // generate type indexes
   setTypeIndexes(streams);
+  // execute a media info scan
+  const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
   // determine number of input streams of each type
   const inputStreamCounts: { [key: string]: number; } = getTypeCountsMap(streams);
   args.jobLog(`input stream counts: ${JSON.stringify(inputStreamCounts)}`);
