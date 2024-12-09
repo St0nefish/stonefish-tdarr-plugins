@@ -10,11 +10,12 @@ import {
 
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 const details = (): IpluginDetails => ({
-  name: 'Replace Codecs in File Names',
+  name: 'Rename Files',
   description:
     `
-    Replace codecs in the file name and optionally any other files in the directory sharing the same name pattern. The 
-    new values will be retrieved from the current file metadata. 
+    Renames the primary video file and optionally any associated files in the same directory which use the same root 
+    name but different extensions. This can be useful for updating your file name(s) to match codecs, resolutions, etc 
+    after running through tdarr and potentially changing those values. 
     `,
   style: {
     borderColor: 'green',
@@ -171,7 +172,11 @@ const details = (): IpluginDetails => ({
   outputs: [
     {
       number: 1,
-      tooltip: 'Continue to next plugin',
+      tooltip: 'One or more files were renamed',
+    },
+    {
+      number: 2,
+      tooltip: 'No files were renamed',
     },
   ],
 });

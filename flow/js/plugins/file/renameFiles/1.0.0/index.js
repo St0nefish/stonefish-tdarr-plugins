@@ -45,8 +45,8 @@ var fileMoveOrCopy_1 = __importDefault(require("../../../../FlowHelpers/1.0.0/fi
 var fileUtils_1 = require("../../../../FlowHelpers/1.0.0/fileUtils");
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 var details = function () { return ({
-    name: 'Replace Codecs in File Names',
-    description: "\n    Replace codecs in the file name and optionally any other files in the directory sharing the same name pattern. The \n    new values will be retrieved from the current file metadata. \n    ",
+    name: 'Rename Files',
+    description: "\n    Renames the primary video file and optionally any associated files in the same directory which use the same root \n    name but different extensions. This can be useful for updating your file name(s) to match codecs, resolutions, etc \n    after running through tdarr and potentially changing those values. \n    ",
     style: {
         borderColor: 'green',
     },
@@ -146,7 +146,11 @@ var details = function () { return ({
     outputs: [
         {
             number: 1,
-            tooltip: 'Continue to next plugin',
+            tooltip: 'One or more files were renamed',
+        },
+        {
+            number: 2,
+            tooltip: 'No files were renamed',
         },
     ],
 }); };
