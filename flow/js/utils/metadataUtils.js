@@ -80,10 +80,11 @@ var getMediaInfoTrack = function (stream, mediaInfo) {
     var _a, _b;
     return ((_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (infoTrack) {
         var _a, _b;
-        return (infoTrack['@type'] === (0, exports.getCodecType)(stream)
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            && ((_a = Number(infoTrack['StreamOrder'])) !== null && _a !== void 0 ? _a : -1) === ((_b = Number(videoStream === null || videoStream === void 0 ? void 0 : videoStream.index)) !== null && _b !== void 0 ? _b : -1));
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        var infoStreamOrder = (_a = Number(infoTrack['StreamOrder'])) !== null && _a !== void 0 ? _a : -1;
+        var videoStreamIndex = (_b = Number(stream === null || stream === void 0 ? void 0 : stream.index)) !== null && _b !== void 0 ? _b : -2;
+        return infoStreamOrder === videoStreamIndex;
     })) === null || _b === void 0 ? void 0 : _b[0]);
 };
 exports.getMediaInfoTrack = getMediaInfoTrack;

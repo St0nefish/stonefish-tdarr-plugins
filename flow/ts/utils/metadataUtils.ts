@@ -25,12 +25,13 @@ export const getCodecType = (stream?: Istreams): string => (stream?.codec_type?.
 
 // function to get the correct media info track for the input stream - assumes indexes are untouched
 export const getMediaInfoTrack = (stream?: Istreams, mediaInfo?: ImediaInfo) => (
-  mediaInfo?.track?.filter((infoTrack) => (
-    infoTrack['@type'] === getCodecType(stream)
+  mediaInfo?.track?.filter((infoTrack) => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    && (Number(infoTrack['StreamOrder']) ?? -1) === (Number(videoStream?.index) ?? -1)))?.[0]
-);
+    const infoStreamOrder = Number(infoTrack['StreamOrder']) ?? -1;
+    const videoStreamIndex = Number(stream?.index) ?? -2;
+    return infoStreamOrder === videoStreamIndex;
+  })?.[0]);
 
 // function to get stream type flag for use in qualifiers
 export const getStreamTypeFlag = (stream: IffmpegCommandStream): string => (Array.from(getCodecType(stream) ?? '')[0]);
