@@ -181,6 +181,8 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 return [4 /*yield*/, (0, metadataUtils_1.getMediaInfo)(args)];
             case 1:
                 mediaInfo = _b.sent();
+                // ToDo - remove
+                args.jobLog("loaded media info:\n".concat(mediaInfo));
                 videoCodecRegex = /(h264|h265|x264|x265|avc|hevc|mpeg2|av1)/gi;
                 videoResRegex = /(480p|576p|720p|1080p|1440p|2160p|4320p)/gi;
                 audioCodecRegex = /(aac|ac3|eac3|flac|mp2|mp3|truehd|dts[-. ]hd[-. ]ma|dts[-. ]hd[-. ]es|dts[-. ]hd[-. ]hra|dts[-. ]express|dts)/gi;
@@ -199,6 +201,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         args.jobLog("parsed path: ".concat(JSON.stringify(otherPath)));
                         if (otherPath // able to parse the path
                             && otherPath.base !== fileFullName // not our original video file
+                            && otherPath.name.startsWith(fileBaseName) // matches input file pattern
                             && (supportedExtensions.length === 0 || supportedExtensions.includes(otherPath.ext)) // passes extension filter
                         ) {
                             files.push(otherPath.base);
@@ -230,7 +233,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                             args.jobLog("checking info track ".concat(JSON.stringify(infoTrack)));
                             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                             // @ts-ignore
-                            return infoTrack && infoTrack.StreamOrder === videoStream_1.index;
+                            return (infoTrack === null || infoTrack === void 0 ? void 0 : infoTrack.StreamOrder) === videoStream_1.index;
                         })) === null || _b === void 0 ? void 0 : _b[0];
                         // ToDo - remove logging
                         args.jobLog("using video media info:\n".concat(JSON.stringify(videoMediaInfo)));

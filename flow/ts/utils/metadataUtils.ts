@@ -32,7 +32,7 @@ export const getStreamTypeFlag = (stream: IffmpegCommandStream): string => (Arra
 
 // function to get the codec friendly name
 export const getCodecName = (stream: IffmpegCommandStream, mediaInfo?: any): string => (
-  mediaInfo.Format_Commercial_IfAny ?? mediaInfo.Format ?? stream?.codec_name.toUpperCase()
+  mediaInfo?.Format_Commercial_IfAny ?? mediaInfo?.Format ?? stream?.codec_name?.toUpperCase()
 );
 
 // function to set a typeIndex field on each stream in the input array

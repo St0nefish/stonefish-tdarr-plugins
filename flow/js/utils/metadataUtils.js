@@ -85,8 +85,8 @@ var getStreamTypeFlag = function (stream) { return (Array.from((0, exports.getCo
 exports.getStreamTypeFlag = getStreamTypeFlag;
 // function to get the codec friendly name
 var getCodecName = function (stream, mediaInfo) {
-    var _a, _b;
-    return ((_b = (_a = mediaInfo.Format_Commercial_IfAny) !== null && _a !== void 0 ? _a : mediaInfo.Format) !== null && _b !== void 0 ? _b : stream === null || stream === void 0 ? void 0 : stream.codec_name.toUpperCase());
+    var _a, _b, _c;
+    return ((_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.Format_Commercial_IfAny) !== null && _a !== void 0 ? _a : mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.Format) !== null && _b !== void 0 ? _b : (_c = stream === null || stream === void 0 ? void 0 : stream.codec_name) === null || _c === void 0 ? void 0 : _c.toUpperCase());
 };
 exports.getCodecName = getCodecName;
 // function to set a typeIndex field on each stream in the input array

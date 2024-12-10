@@ -212,6 +212,11 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const { streams } = args.variables.ffmpegCommand;
   // execute a media info scan
   const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
+
+  // ToDo - remove
+  args.jobLog(`loaded media info:\n${mediaInfo}`);
+  // ToDo - remove
+
   // regexes for replacing
   const videoCodecRegex = /(h264|h265|x264|x265|avc|hevc|mpeg2|av1)/gi;
   const videoResRegex = /(480p|576p|720p|1080p|1440p|2160p|4320p)/gi;
@@ -235,6 +240,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
       args.jobLog(`parsed path: ${JSON.stringify(otherPath)}`);
       if (otherPath // able to parse the path
         && otherPath.base !== fileFullName // not our original video file
+        && otherPath.name.startsWith(fileBaseName) // matches input file pattern
         && (supportedExtensions.length === 0 || supportedExtensions.includes(otherPath.ext)) // passes extension filter
       ) {
         files.push(otherPath.base);
@@ -265,7 +271,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
         args.jobLog(`checking info track ${JSON.stringify(infoTrack)}`);
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        return infoTrack && infoTrack.StreamOrder === videoStream.index;
+        return infoTrack?.StreamOrder === videoStream.index;
       })?.[0];
 
       // ToDo - remove logging
