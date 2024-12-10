@@ -176,7 +176,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     .filter(function (item) { return item && item.length > 0; })
                     .filter(function (item, index, items) { return items.indexOf(item) === index; });
                 metadataDelimiter = (_a = String(args.inputs.metadataDelimiter)) !== null && _a !== void 0 ? _a : undefined;
-                streams = args.variables.ffmpegCommand.streams;
+                streams = args.inputFileObj.ffProbeData.streams;
                 return [4 /*yield*/, (0, metadataUtils_1.getMediaInfo)(args)];
             case 1:
                 mediaInfo = _b.sent();
@@ -227,7 +227,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     // if any video-based rename is enabled
                     if (replaceVideoCodec || replaceVideoRes) {
                         // first find the first video stream and get its media info
-                        var videoStream_1 = streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
+                        var videoStream_1 = streams === null || streams === void 0 ? void 0 : streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
                         // ToDo
                         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                         // @ts-ignore
@@ -249,7 +249,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         }
                     }
                     if (replaceAudioCodec || replaceAudioChannels) {
-                        var audioStream = streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
+                        var audioStream = streams === null || streams === void 0 ? void 0 : streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
                         var audioMediaInfo = (0, metadataUtils_1.getMediaInfoTrack)(audioStream, mediaInfo);
                         // ToDo - remove logging
                         args.jobLog("using audio media info:\n".concat(JSON.stringify(audioMediaInfo)));

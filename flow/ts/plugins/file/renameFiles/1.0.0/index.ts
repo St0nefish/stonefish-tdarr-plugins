@@ -16,7 +16,7 @@ import {
   getMediaInfo, getMediaInfoTrack,
   getResolutionName,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
-import { ImediaInfo } from '../../../../FlowHelpers/1.0.0/interfaces/synced/IFileObject';
+import { ImediaInfo, Istreams } from '../../../../FlowHelpers/1.0.0/interfaces/synced/IFileObject';
 
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 const details = (): IpluginDetails => ({
@@ -208,7 +208,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
     .filter((item, index, items) => items.indexOf(item) === index);
   const metadataDelimiter = String(args.inputs.metadataDelimiter) ?? undefined;
   // grab a handle to streams
-  const { streams } = args.variables.ffmpegCommand;
+  const { streams } = args.inputFileObj.ffProbeData;
   // execute a media info scan
   const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
 
@@ -268,7 +268,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
     // if any video-based rename is enabled
     if (replaceVideoCodec || replaceVideoRes) {
       // first find the first video stream and get its media info
-      const videoStream: IffmpegCommandStream = streams.filter((stream) => getCodecType(stream) === 'video')[0];
+      const videoStream: Istreams | undefined = streams?.filter((stream) => getCodecType(stream) === 'video')[0];
       // ToDo
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
@@ -294,7 +294,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
       }
     }
     if (replaceAudioCodec || replaceAudioChannels) {
-      const audioStream: IffmpegCommandStream = streams.filter((stream) => getCodecType(stream) === 'video')[0];
+      const audioStream: Istreams | undefined = streams?.filter((stream) => getCodecType(stream) === 'video')[0];
       const audioMediaInfo = getMediaInfoTrack(audioStream, mediaInfo);
 
       // ToDo - remove logging

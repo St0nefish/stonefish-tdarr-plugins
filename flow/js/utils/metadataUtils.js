@@ -74,7 +74,7 @@ exports.getMediaInfo = getMediaInfo;
 // function to get the correct media info track for the input stream - assumes indexes are untouched
 var getMediaInfoTrack = function (stream, mediaInfo) {
     var _a, _b;
-    return ((_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (item) { return item.StreamOrder === stream.index; })) !== null && _b !== void 0 ? _b : undefined);
+    return ((_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (item) { return item.StreamOrder === (stream === null || stream === void 0 ? void 0 : stream.index); })) !== null && _b !== void 0 ? _b : undefined);
 };
 exports.getMediaInfoTrack = getMediaInfoTrack;
 // function to get the codec type
@@ -123,7 +123,7 @@ var resolutionMap = {
     8192: '4320p',
 };
 // function to get the resolution name from a stream
-var getResolutionName = function (stream) { return (resolutionMap[Number(stream.width)]); };
+var getResolutionName = function (stream) { return (resolutionMap[Number(stream === null || stream === void 0 ? void 0 : stream.width)]); };
 exports.getResolutionName = getResolutionName;
 // function to get bitrate from stream
 var getBitrate = function (stream, mediaInfo) {
@@ -173,7 +173,7 @@ var channelMap = {
     1: '1.0',
 };
 // function to get the user-friendly channel layout name from a stream
-var getChannelsName = function (stream) { return channelMap[Number(stream.channels)]; };
+var getChannelsName = function (stream) { return channelMap[Number(stream === null || stream === void 0 ? void 0 : stream.channels)]; };
 exports.getChannelsName = getChannelsName;
 // function to convert user-friendly channel layout to a number
 var getChannelCount = function (channelName) {

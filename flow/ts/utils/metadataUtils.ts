@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { IffmpegCommandStream, IpluginInputArgs } from '../interfaces/interfaces';
-import { IFileObject, ImediaInfo } from '../interfaces/synced/IFileObject';
+import { IFileObject, ImediaInfo, Istreams } from '../interfaces/synced/IFileObject';
 
 // function to execute a MediaInfo scan (if possible) and return a File object with embedded mediaInfo data
 export const getMediaInfo = async (args: IpluginInputArgs): Promise<ImediaInfo | undefined> => {
@@ -20,18 +20,18 @@ export const getMediaInfo = async (args: IpluginInputArgs): Promise<ImediaInfo |
 };
 
 // function to get the correct media info track for the input stream - assumes indexes are untouched
-export const getMediaInfoTrack = (stream: IffmpegCommandStream, mediaInfo?: any) => (
-  mediaInfo?.track?.filter((item: any) => item.StreamOrder === stream.index) ?? undefined
+export const getMediaInfoTrack = (stream?: Istreams, mediaInfo?: any) => (
+  mediaInfo?.track?.filter((item: any) => item.StreamOrder === stream?.index) ?? undefined
 );
 
 // function to get the codec type
-export const getCodecType = (stream: IffmpegCommandStream): string => (stream.codec_type.toLowerCase() ?? '');
+export const getCodecType = (stream: Istreams): string => (stream.codec_type.toLowerCase() ?? '');
 
 // function to get stream type flag for use in qualifiers
 export const getStreamTypeFlag = (stream: IffmpegCommandStream): string => (Array.from(getCodecType(stream))[0]);
 
 // function to get the codec friendly name
-export const getCodecName = (stream: IffmpegCommandStream, mediaInfo?: any): string => (
+export const getCodecName = (stream?: Istreams, mediaInfo?: any): string => (
   mediaInfo?.Format_Commercial_IfAny ?? mediaInfo?.Format ?? stream?.codec_name?.toUpperCase()
 );
 
@@ -72,7 +72,7 @@ const resolutionMap: { [key: number]: string } = {
 };
 
 // function to get the resolution name from a stream
-export const getResolutionName = (stream: IffmpegCommandStream): string => (resolutionMap[Number(stream.width)]);
+export const getResolutionName = (stream?: Istreams): string => (resolutionMap[Number(stream?.width)]);
 
 // function to get bitrate from stream
 export const getBitrate = (stream: IffmpegCommandStream, mediaInfo?: any): number => {
@@ -120,7 +120,7 @@ const channelMap: { [key: string]: string } = {
 };
 
 // function to get the user-friendly channel layout name from a stream
-export const getChannelsName = (stream: IffmpegCommandStream): string => channelMap[Number(stream.channels)];
+export const getChannelsName = (stream?: Istreams): string => channelMap[Number(stream?.channels)];
 
 // function to convert user-friendly channel layout to a number
 export const getChannelCount = (channelName: string): number => {
