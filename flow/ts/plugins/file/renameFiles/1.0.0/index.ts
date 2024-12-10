@@ -202,7 +202,10 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const replaceAudioCodec = Boolean(args.inputs.replaceAudioCodec);
   const replaceAudioChannels = Boolean(args.inputs.replaceAudioChannels);
   const renameOtherFiles = Boolean(args.inputs.renameOtherFiles);
-  const supportedExtensions: string[] = String(args.inputs.fileExtensions).split(',').map((ext) => ext?.trim())
+  const supportedExtensions: string[] = String(args.inputs.fileExtensions).split(',')
+    .filter((item) => item)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
     .filter((item, index, items) => items.indexOf(item) === index);
   const metadataDelimiter = String(args.inputs.metadataDelimiter) ?? undefined;
   // grab a handle to streams
@@ -241,13 +244,13 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   // trim entries, remove empty, and ensure unique
   files.map((item) => item?.trim()).filter((item) => item)
     .filter((item, index, items) => items.indexOf(item) === index);
-
   args.jobLog(`files to rename: ${JSON.stringify(files)}`);
-
+  // iterate files
   files.forEach((originalName) => {
     let newName: string = originalName;
     let originalSuffix: string | undefined;
     // if using the metadata delimiter parse only the end of the file
+    args.jobLog(`checking if [${originalName}] contains delimiter [${metadataDelimiter}]`);
     if (metadataDelimiter && originalName.includes(metadataDelimiter)) {
       newName = originalName.substring(originalName.indexOf(metadataDelimiter));
       originalSuffix = newName;
@@ -259,10 +262,10 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
       const videoStream: IffmpegCommandStream = streams.filter((stream) => getCodecType(stream) === 'video')[0];
       // ToDo
       const videoMediaInfo = mediaInfo?.track?.filter((infoTrack) => {
-        args.jobLog(`checking info track ${infoTrack}`);
+        args.jobLog(`checking info track ${JSON.stringify(infoTrack)}`);
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        return infoTrack.StreamOrder === videoStream.index;
+        return infoTrack && infoTrack.StreamOrder === videoStream.index;
       })?.[0];
 
       // ToDo - remove logging

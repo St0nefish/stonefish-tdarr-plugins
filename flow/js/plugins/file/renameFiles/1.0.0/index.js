@@ -171,7 +171,10 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 replaceAudioCodec = Boolean(args.inputs.replaceAudioCodec);
                 replaceAudioChannels = Boolean(args.inputs.replaceAudioChannels);
                 renameOtherFiles = Boolean(args.inputs.renameOtherFiles);
-                supportedExtensions = String(args.inputs.fileExtensions).split(',').map(function (ext) { return ext === null || ext === void 0 ? void 0 : ext.trim(); })
+                supportedExtensions = String(args.inputs.fileExtensions).split(',')
+                    .filter(function (item) { return item; })
+                    .map(function (item) { return item.trim(); })
+                    .filter(function (item) { return item.length > 0; })
                     .filter(function (item, index, items) { return items.indexOf(item) === index; });
                 metadataDelimiter = (_a = String(args.inputs.metadataDelimiter)) !== null && _a !== void 0 ? _a : undefined;
                 streams = args.variables.ffmpegCommand.streams;
@@ -206,11 +209,13 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 files.map(function (item) { return item === null || item === void 0 ? void 0 : item.trim(); }).filter(function (item) { return item; })
                     .filter(function (item, index, items) { return items.indexOf(item) === index; });
                 args.jobLog("files to rename: ".concat(JSON.stringify(files)));
+                // iterate files
                 files.forEach(function (originalName) {
                     var _a, _b;
                     var newName = originalName;
                     var originalSuffix;
                     // if using the metadata delimiter parse only the end of the file
+                    args.jobLog("checking if [".concat(originalName, "] contains delimiter [").concat(metadataDelimiter, "]"));
                     if (metadataDelimiter && originalName.includes(metadataDelimiter)) {
                         newName = originalName.substring(originalName.indexOf(metadataDelimiter));
                         originalSuffix = newName;
@@ -222,10 +227,10 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         var videoStream_1 = streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
                         // ToDo
                         var videoMediaInfo = (_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (infoTrack) {
-                            args.jobLog("checking info track ".concat(infoTrack));
+                            args.jobLog("checking info track ".concat(JSON.stringify(infoTrack)));
                             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                             // @ts-ignore
-                            return infoTrack.StreamOrder === videoStream_1.index;
+                            return infoTrack && infoTrack.StreamOrder === videoStream_1.index;
                         })) === null || _b === void 0 ? void 0 : _b[0];
                         // ToDo - remove logging
                         args.jobLog("using video media info:\n".concat(JSON.stringify(videoMediaInfo)));
