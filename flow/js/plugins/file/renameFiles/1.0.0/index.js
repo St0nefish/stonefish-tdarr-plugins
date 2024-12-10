@@ -1,5 +1,6 @@
 "use strict";
 /* eslint-disable max-len */
+/* eslint-disable dot-notation */
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -234,9 +235,11 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                             var _a, _b;
                             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                             // @ts-ignore
-                            var infoStreamOrder = (_a = Number(infoTrack === null || infoTrack === void 0 ? void 0 : infoTrack.StreamOrder)) !== null && _a !== void 0 ? _a : 99;
+                            var infoStreamOrder = (_a = Number(infoTrack['StreamOrder'])) !== null && _a !== void 0 ? _a : 99;
                             var videoStreamIndex = (_b = Number(videoStream_1 === null || videoStream_1 === void 0 ? void 0 : videoStream_1.index)) !== null && _b !== void 0 ? _b : 99;
                             args.jobLog("checking if info stream order [".concat(infoStreamOrder, "] equals video index [").concat(videoStreamIndex, "]"));
+                            var infoStreamType = infoTrack['@type'];
+                            args.jobLog("info stream is of type [".concat(infoStreamType, "]"));
                             return infoStreamOrder === videoStreamIndex;
                         });
                         args.jobLog("found matching media info: ".concat(JSON.stringify(videoMediaInfos)));

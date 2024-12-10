@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+/* eslint-disable dot-notation */
 
 import path, { ParsedPath } from 'path';
 import fs from 'fs';
@@ -275,9 +276,11 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
       const videoMediaInfos = mediaInfo?.track?.filter((infoTrack) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        const infoStreamOrder = Number(infoTrack?.StreamOrder) ?? 99;
+        const infoStreamOrder = Number(infoTrack['StreamOrder']) ?? 99;
         const videoStreamIndex = Number(videoStream?.index) ?? 99;
         args.jobLog(`checking if info stream order [${infoStreamOrder}] equals video index [${videoStreamIndex}]`);
+        const infoStreamType = infoTrack['@type'];
+        args.jobLog(`info stream is of type [${infoStreamType}]`);
         return infoStreamOrder === videoStreamIndex;
       });
       args.jobLog(`found matching media info: ${JSON.stringify(videoMediaInfos)}`);
