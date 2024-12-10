@@ -202,8 +202,8 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const replaceAudioCodec = Boolean(args.inputs.replaceAudioCodec);
   const replaceAudioChannels = Boolean(args.inputs.replaceAudioChannels);
   const renameOtherFiles = Boolean(args.inputs.renameOtherFiles);
-  const supportedExtensions: string[] = String(args.inputs.fileExtensions)
-    .split(',').map((ext) => ext?.trim()).filter((item, index, items) => items.indexOf(item) === index);
+  const supportedExtensions: string[] = String(args.inputs.fileExtensions).split(',').map((ext) => ext?.trim())
+    .filter((item, index, items) => items.indexOf(item) === index);
   const metadataDelimiter = String(args.inputs.metadataDelimiter) ?? undefined;
   // grab a handle to streams
   const { streams } = args.variables.ffmpegCommand;
@@ -214,24 +214,22 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const videoResRegex = /(480p|576p|720p|1080p|1440p|2160p|4320p)/gi;
   const audioCodecRegex = /(aac|ac3|eac3|flac|mp2|mp3|truehd|dts[-. ]hd[-. ]ma|dts[-. ]hd[-. ]es|dts[-. ]hd[-. ]hra|dts[-. ]express|dts)/gi;
   const audioChannelsRegex = /(1.0|2.0|2.1|3.0|3.1|5.1|6.1|7.1|)/gi;
-
-  args.jobLog(`input file:\n${JSON.stringify(args.inputFileObj)}`);
-  args.jobLog(`original file:\n${JSON.stringify(args.originalLibraryFile)}`);
-
   // get file name and path from input object
   const filePath: ParsedPath = path.parse(args.inputFileObj._id);
   const fileFullName: string = filePath.base;
   const fileBaseName: string = filePath.name;
   const fileDir: string = filePath.dir;
 
-  args.jobLog(`looking for files to rename in [${fileDir}] with name like [${fileBaseName}]`);
+  args.jobLog(`looking for files in [${fileDir}] with name like [${fileBaseName}] and extensions ${JSON.stringify(supportedExtensions)}`);
 
   // build a list of other files in the directory - start with our video file
-  const files: string[] = [args.inputFileObj._id];
+  const files: string[] = [fileFullName];
   // if enabled add other files in the directory
   if (renameOtherFiles) {
     fs.readdirSync(fileDir).forEach((item: string) => {
+      args.jobLog(`checking if we should rename file [${fileDir}/${item}]`);
       const otherPath: ParsedPath = path.parse(`${fileDir}/${item}`);
+      args.jobLog(`parsed path: ${JSON.stringify(otherPath)}`);
       if (otherPath // able to parse the path
         && otherPath.base !== fileFullName // not our original video file
         && (supportedExtensions.length === 0 || supportedExtensions.includes(otherPath.ext)) // passes extension filter
@@ -250,15 +248,22 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
     let newName: string = originalName;
     let originalSuffix: string | undefined;
     // if using the metadata delimiter parse only the end of the file
-    if (metadataDelimiter) {
+    if (metadataDelimiter && originalName.includes(metadataDelimiter)) {
       newName = originalName.substring(originalName.indexOf(metadataDelimiter));
       originalSuffix = newName;
+      args.jobLog(`executing rename on [${newName}], original suffix: [${originalSuffix}]`);
     }
     // if any video-based rename is enabled
     if (replaceVideoCodec || replaceVideoRes) {
       // first find the first video stream and get its media info
       const videoStream: IffmpegCommandStream = streams.filter((stream) => getCodecType(stream) === 'video')[0];
-      const videoMediaInfo = getMediaInfoTrack(videoStream, mediaInfo);
+      // ToDo
+      const videoMediaInfo = mediaInfo?.track?.filter((infoTrack) => {
+        args.jobLog(`checking info track ${infoTrack}`);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        return infoTrack.StreamOrder === videoStream.index;
+      })?.[0];
 
       // ToDo - remove logging
       args.jobLog(`using video media info:\n${JSON.stringify(videoMediaInfo)}`);
@@ -266,10 +271,14 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
       // handle video codec replacement if enabled
       if (replaceVideoCodec) {
         newName = newName.replace(videoCodecRegex, getCodecName(videoStream, videoMediaInfo));
+
+        args.jobLog(`name after video codec: [${newName}]`);
       }
       // handle video resolution replacement if enabled
       if (replaceVideoRes) {
         newName = newName.replace(videoResRegex, getResolutionName(videoStream));
+
+        args.jobLog(`name after video resolution: [${newName}]`);
       }
     }
     if (replaceAudioCodec || replaceAudioChannels) {
@@ -283,28 +292,33 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
       // handle audio codec replacement if enabled
       if (replaceAudioCodec) {
         newName = newName.replace(audioCodecRegex, getCodecName(audioStream, audioMediaInfo));
+
+        args.jobLog(`name after audio codec: [${newName}]`);
       }
       // handle audio channels replacement if enabled
       if (replaceAudioChannels) {
         newName = newName.replace(audioChannelsRegex, getChannelsName(audioStream));
+
+        args.jobLog(`name after audio channels: [${newName}]`);
       }
     }
     // if using the metadata delimiter now replace the entire original suffix with the new one
     if (metadataDelimiter && originalSuffix) {
+      args.jobLog(`replacing original suffix [${originalSuffix}] with [${newName}]`);
       newName = originalName.replace(originalSuffix, newName);
     }
     args.jobLog(`renaming [${originalName}] to [${newName}]`);
     // ToDo - actually rename
   });
 
-  if (fileBaseName === '') {
-    await fileMoveOrCopy({
-      operation: 'move',
-      sourcePath: args.inputFileObj._id,
-      destinationPath: `${fileDir}/${fileBaseName}`,
-      args,
-    });
-  }
+  // if (fileBaseName === '') {
+  //   await fileMoveOrCopy({
+  //     operation: 'move',
+  //     sourcePath: args.inputFileObj._id,
+  //     destinationPath: `${fileDir}/${fileBaseName}`,
+  //     args,
+  //   });
+  // }
 
   // let newName = String(args.inputs.fileRename).trim();
   // newName = newName.replace(/\${fileName}/g, fileName);

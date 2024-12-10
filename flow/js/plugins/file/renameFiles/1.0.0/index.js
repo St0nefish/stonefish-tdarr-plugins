@@ -43,7 +43,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.plugin = exports.details = void 0;
 var path_1 = __importDefault(require("path"));
 var fs_1 = __importDefault(require("fs"));
-var fileMoveOrCopy_1 = __importDefault(require("../../../../FlowHelpers/1.0.0/fileMoveOrCopy"));
 var metadataUtils_1 = require("../../../../FlowHelpers/1.0.0/local/metadataUtils");
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 var details = function () { return ({
@@ -172,8 +171,8 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 replaceAudioCodec = Boolean(args.inputs.replaceAudioCodec);
                 replaceAudioChannels = Boolean(args.inputs.replaceAudioChannels);
                 renameOtherFiles = Boolean(args.inputs.renameOtherFiles);
-                supportedExtensions = String(args.inputs.fileExtensions)
-                    .split(',').map(function (ext) { return ext === null || ext === void 0 ? void 0 : ext.trim(); }).filter(function (item, index, items) { return items.indexOf(item) === index; });
+                supportedExtensions = String(args.inputs.fileExtensions).split(',').map(function (ext) { return ext === null || ext === void 0 ? void 0 : ext.trim(); })
+                    .filter(function (item, index, items) { return items.indexOf(item) === index; });
                 metadataDelimiter = (_a = String(args.inputs.metadataDelimiter)) !== null && _a !== void 0 ? _a : undefined;
                 streams = args.variables.ffmpegCommand.streams;
                 return [4 /*yield*/, (0, metadataUtils_1.getMediaInfo)(args)];
@@ -183,18 +182,18 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 videoResRegex = /(480p|576p|720p|1080p|1440p|2160p|4320p)/gi;
                 audioCodecRegex = /(aac|ac3|eac3|flac|mp2|mp3|truehd|dts[-. ]hd[-. ]ma|dts[-. ]hd[-. ]es|dts[-. ]hd[-. ]hra|dts[-. ]express|dts)/gi;
                 audioChannelsRegex = /(1.0|2.0|2.1|3.0|3.1|5.1|6.1|7.1|)/gi;
-                args.jobLog("input file:\n".concat(JSON.stringify(args.inputFileObj)));
-                args.jobLog("original file:\n".concat(JSON.stringify(args.originalLibraryFile)));
                 filePath = path_1.default.parse(args.inputFileObj._id);
                 fileFullName = filePath.base;
                 fileBaseName = filePath.name;
                 fileDir = filePath.dir;
-                args.jobLog("looking for files to rename in [".concat(fileDir, "] with name like [").concat(fileBaseName, "]"));
-                files = [args.inputFileObj._id];
+                args.jobLog("looking for files in [".concat(fileDir, "] with name like [").concat(fileBaseName, "] and extensions ").concat(JSON.stringify(supportedExtensions)));
+                files = [fileFullName];
                 // if enabled add other files in the directory
                 if (renameOtherFiles) {
                     fs_1.default.readdirSync(fileDir).forEach(function (item) {
+                        args.jobLog("checking if we should rename file [".concat(fileDir, "/").concat(item, "]"));
                         var otherPath = path_1.default.parse("".concat(fileDir, "/").concat(item));
+                        args.jobLog("parsed path: ".concat(JSON.stringify(otherPath)));
                         if (otherPath // able to parse the path
                             && otherPath.base !== fileFullName // not our original video file
                             && (supportedExtensions.length === 0 || supportedExtensions.includes(otherPath.ext)) // passes extension filter
@@ -208,28 +207,38 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     .filter(function (item, index, items) { return items.indexOf(item) === index; });
                 args.jobLog("files to rename: ".concat(JSON.stringify(files)));
                 files.forEach(function (originalName) {
+                    var _a, _b;
                     var newName = originalName;
                     var originalSuffix;
                     // if using the metadata delimiter parse only the end of the file
-                    if (metadataDelimiter) {
+                    if (metadataDelimiter && originalName.includes(metadataDelimiter)) {
                         newName = originalName.substring(originalName.indexOf(metadataDelimiter));
                         originalSuffix = newName;
+                        args.jobLog("executing rename on [".concat(newName, "], original suffix: [").concat(originalSuffix, "]"));
                     }
                     // if any video-based rename is enabled
                     if (replaceVideoCodec || replaceVideoRes) {
                         // first find the first video stream and get its media info
-                        var videoStream = streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
-                        var videoMediaInfo = (0, metadataUtils_1.getMediaInfoTrack)(videoStream, mediaInfo);
+                        var videoStream_1 = streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
+                        // ToDo
+                        var videoMediaInfo = (_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (infoTrack) {
+                            args.jobLog("checking info track ".concat(infoTrack));
+                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                            // @ts-ignore
+                            return infoTrack.StreamOrder === videoStream_1.index;
+                        })) === null || _b === void 0 ? void 0 : _b[0];
                         // ToDo - remove logging
                         args.jobLog("using video media info:\n".concat(JSON.stringify(videoMediaInfo)));
                         // ToDo - remove logging
                         // handle video codec replacement if enabled
                         if (replaceVideoCodec) {
-                            newName = newName.replace(videoCodecRegex, (0, metadataUtils_1.getCodecName)(videoStream, videoMediaInfo));
+                            newName = newName.replace(videoCodecRegex, (0, metadataUtils_1.getCodecName)(videoStream_1, videoMediaInfo));
+                            args.jobLog("name after video codec: [".concat(newName, "]"));
                         }
                         // handle video resolution replacement if enabled
                         if (replaceVideoRes) {
-                            newName = newName.replace(videoResRegex, (0, metadataUtils_1.getResolutionName)(videoStream));
+                            newName = newName.replace(videoResRegex, (0, metadataUtils_1.getResolutionName)(videoStream_1));
+                            args.jobLog("name after video resolution: [".concat(newName, "]"));
                         }
                     }
                     if (replaceAudioCodec || replaceAudioChannels) {
@@ -241,67 +250,67 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         // handle audio codec replacement if enabled
                         if (replaceAudioCodec) {
                             newName = newName.replace(audioCodecRegex, (0, metadataUtils_1.getCodecName)(audioStream, audioMediaInfo));
+                            args.jobLog("name after audio codec: [".concat(newName, "]"));
                         }
                         // handle audio channels replacement if enabled
                         if (replaceAudioChannels) {
                             newName = newName.replace(audioChannelsRegex, (0, metadataUtils_1.getChannelsName)(audioStream));
+                            args.jobLog("name after audio channels: [".concat(newName, "]"));
                         }
                     }
                     // if using the metadata delimiter now replace the entire original suffix with the new one
                     if (metadataDelimiter && originalSuffix) {
+                        args.jobLog("replacing original suffix [".concat(originalSuffix, "] with [").concat(newName, "]"));
                         newName = originalName.replace(originalSuffix, newName);
                     }
                     args.jobLog("renaming [".concat(originalName, "] to [").concat(newName, "]"));
                     // ToDo - actually rename
                 });
-                if (!(fileBaseName === '')) return [3 /*break*/, 3];
-                return [4 /*yield*/, (0, fileMoveOrCopy_1.default)({
-                        operation: 'move',
-                        sourcePath: args.inputFileObj._id,
-                        destinationPath: "".concat(fileDir, "/").concat(fileBaseName),
-                        args: args,
-                    })];
-            case 2:
-                _b.sent();
-                _b.label = 3;
-            case 3: 
-            // let newName = String(args.inputs.fileRename).trim();
-            // newName = newName.replace(/\${fileName}/g, fileName);
-            // newName = newName.replace(/\${container}/g, getContainer(args.inputFileObj._id));
-            //
-            // const newPath = `${fileDir}/${newName}`;
-            //
-            // if (args.inputFileObj._id === newPath) {
-            //   args.jobLog('Input and output path are the same, skipping rename.');
-            //
-            //   return {
-            //     outputFileObj: {
-            //       _id: args.inputFileObj._id,
-            //     },
-            //     outputNumber: 1,
-            //     variables: args.variables,
-            //   };
-            // }
-            //
-            // await fileMoveOrCopy({
-            //   operation: 'move',
-            //   sourcePath: args.inputFileObj._id,
-            //   destinationPath: newPath,
-            //   args,
-            // });
-            //
-            // return {
-            //   outputFileObj: {
-            //     _id: newPath,
-            //   },
-            //   outputNumber: 1,
-            //   variables: args.variables,
-            // };
-            return [2 /*return*/, {
-                    outputFileObj: args.inputFileObj,
-                    outputNumber: 1,
-                    variables: args.variables,
-                }];
+                // if (fileBaseName === '') {
+                //   await fileMoveOrCopy({
+                //     operation: 'move',
+                //     sourcePath: args.inputFileObj._id,
+                //     destinationPath: `${fileDir}/${fileBaseName}`,
+                //     args,
+                //   });
+                // }
+                // let newName = String(args.inputs.fileRename).trim();
+                // newName = newName.replace(/\${fileName}/g, fileName);
+                // newName = newName.replace(/\${container}/g, getContainer(args.inputFileObj._id));
+                //
+                // const newPath = `${fileDir}/${newName}`;
+                //
+                // if (args.inputFileObj._id === newPath) {
+                //   args.jobLog('Input and output path are the same, skipping rename.');
+                //
+                //   return {
+                //     outputFileObj: {
+                //       _id: args.inputFileObj._id,
+                //     },
+                //     outputNumber: 1,
+                //     variables: args.variables,
+                //   };
+                // }
+                //
+                // await fileMoveOrCopy({
+                //   operation: 'move',
+                //   sourcePath: args.inputFileObj._id,
+                //   destinationPath: newPath,
+                //   args,
+                // });
+                //
+                // return {
+                //   outputFileObj: {
+                //     _id: newPath,
+                //   },
+                //   outputNumber: 1,
+                //   variables: args.variables,
+                // };
+                return [2 /*return*/, {
+                        outputFileObj: args.inputFileObj,
+                        outputNumber: 1,
+                        variables: args.variables,
+                    }];
         }
     });
 }); };
