@@ -228,6 +228,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     if (replaceVideoCodec || replaceVideoRes) {
                         // first find the first video stream and get its media info
                         var videoStream_1 = streams === null || streams === void 0 ? void 0 : streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
+                        args.jobLog("using video stream: ".concat(JSON.stringify(videoStream_1)));
                         // ToDo
                         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                         // @ts-ignore
