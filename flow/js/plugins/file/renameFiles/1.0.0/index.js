@@ -230,9 +230,15 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         var videoStream_1 = streams === null || streams === void 0 ? void 0 : streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
                         args.jobLog("using video stream: ".concat(JSON.stringify(videoStream_1)));
                         // ToDo
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-ignore
-                        var videoMediaInfos = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (infoTrack) { return (infoTrack === null || infoTrack === void 0 ? void 0 : infoTrack.StreamOrder) === videoStream_1.index; });
+                        var videoMediaInfos = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (infoTrack) {
+                            var _a, _b;
+                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                            // @ts-ignore
+                            var infoStreamOrder = (_a = Number(infoTrack === null || infoTrack === void 0 ? void 0 : infoTrack.StreamOrder)) !== null && _a !== void 0 ? _a : 99;
+                            var videoStreamIndex = (_b = Number(videoStream_1 === null || videoStream_1 === void 0 ? void 0 : videoStream_1.index)) !== null && _b !== void 0 ? _b : 99;
+                            args.jobLog("checking if info stream order [".concat(infoStreamOrder, "] equals video index [").concat(videoStreamIndex, "]"));
+                            return infoStreamOrder === videoStreamIndex;
+                        });
                         args.jobLog("found matching media info: ".concat(JSON.stringify(videoMediaInfos)));
                         var videoMediaInfo = videoMediaInfos === null || videoMediaInfos === void 0 ? void 0 : videoMediaInfos[0];
                         // ToDo - remove logging

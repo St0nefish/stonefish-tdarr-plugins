@@ -272,9 +272,14 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
 
       args.jobLog(`using video stream: ${JSON.stringify(videoStream)}`);
       // ToDo
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const videoMediaInfos = mediaInfo?.track?.filter((infoTrack) => infoTrack?.StreamOrder === videoStream.index);
+      const videoMediaInfos = mediaInfo?.track?.filter((infoTrack) => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        const infoStreamOrder = Number(infoTrack?.StreamOrder) ?? 99;
+        const videoStreamIndex = Number(videoStream?.index) ?? 99;
+        args.jobLog(`checking if info stream order [${infoStreamOrder}] equals video index [${videoStreamIndex}]`);
+        return infoStreamOrder === videoStreamIndex;
+      });
       args.jobLog(`found matching media info: ${JSON.stringify(videoMediaInfos)}`);
 
       const videoMediaInfo = videoMediaInfos?.[0];
