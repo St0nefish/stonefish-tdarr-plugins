@@ -203,9 +203,8 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const replaceAudioChannels = Boolean(args.inputs.replaceAudioChannels);
   const renameOtherFiles = Boolean(args.inputs.renameOtherFiles);
   const supportedExtensions: string[] = String(args.inputs.fileExtensions).split(',')
-    .filter((item) => item)
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0)
+    .map((item) => item?.trim())
+    .filter((item) => item && item.length > 0)
     .filter((item, index, items) => items.indexOf(item) === index);
   const metadataDelimiter = String(args.inputs.metadataDelimiter) ?? undefined;
   // grab a handle to streams
@@ -214,7 +213,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
 
   // ToDo - remove
-  args.jobLog(`loaded media info:\n${mediaInfo}`);
+  args.jobLog(`loaded media info:\n${JSON.stringify(mediaInfo)}`);
   // ToDo - remove
 
   // regexes for replacing
@@ -228,16 +227,16 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const fileBaseName: string = filePath.name;
   const fileDir: string = filePath.dir;
 
+  // ToDo - remove
   args.jobLog(`looking for files in [${fileDir}] with name like [${fileBaseName}] and extensions ${JSON.stringify(supportedExtensions)}`);
+  // ToDo - remove
 
   // build a list of other files in the directory - start with our video file
   const files: string[] = [fileFullName];
   // if enabled add other files in the directory
   if (renameOtherFiles) {
     fs.readdirSync(fileDir).forEach((item: string) => {
-      args.jobLog(`checking if we should rename file [${fileDir}/${item}]`);
       const otherPath: ParsedPath = path.parse(`${fileDir}/${item}`);
-      args.jobLog(`parsed path: ${JSON.stringify(otherPath)}`);
       if (otherPath // able to parse the path
         && otherPath.base !== fileFullName // not our original video file
         && otherPath.name.startsWith(fileBaseName) // matches input file pattern
@@ -250,7 +249,11 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   // trim entries, remove empty, and ensure unique
   files.map((item) => item?.trim()).filter((item) => item)
     .filter((item, index, items) => items.indexOf(item) === index);
+
+  // ToDo - remove
   args.jobLog(`files to rename: ${JSON.stringify(files)}`);
+  // ToDo - remove
+
   // iterate files
   files.forEach((originalName) => {
     let newName: string = originalName;
@@ -267,12 +270,12 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
       // first find the first video stream and get its media info
       const videoStream: IffmpegCommandStream = streams.filter((stream) => getCodecType(stream) === 'video')[0];
       // ToDo
-      const videoMediaInfo = mediaInfo?.track?.filter((infoTrack) => {
-        args.jobLog(`checking info track ${JSON.stringify(infoTrack)}`);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        return infoTrack?.StreamOrder === videoStream.index;
-      })?.[0];
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const videoMediaInfos = mediaInfo?.track?.filter((infoTrack) => infoTrack?.StreamOrder === videoStream.index);
+      args.jobLog(`found matching media info: ${JSON.stringify(videoMediaInfos)}`);
+
+      const videoMediaInfo = videoMediaInfos?.[0];
 
       // ToDo - remove logging
       args.jobLog(`using video media info:\n${JSON.stringify(videoMediaInfo)}`);

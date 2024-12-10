@@ -172,9 +172,8 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 replaceAudioChannels = Boolean(args.inputs.replaceAudioChannels);
                 renameOtherFiles = Boolean(args.inputs.renameOtherFiles);
                 supportedExtensions = String(args.inputs.fileExtensions).split(',')
-                    .filter(function (item) { return item; })
-                    .map(function (item) { return item.trim(); })
-                    .filter(function (item) { return item.length > 0; })
+                    .map(function (item) { return item === null || item === void 0 ? void 0 : item.trim(); })
+                    .filter(function (item) { return item && item.length > 0; })
                     .filter(function (item, index, items) { return items.indexOf(item) === index; });
                 metadataDelimiter = (_a = String(args.inputs.metadataDelimiter)) !== null && _a !== void 0 ? _a : undefined;
                 streams = args.variables.ffmpegCommand.streams;
@@ -182,7 +181,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
             case 1:
                 mediaInfo = _b.sent();
                 // ToDo - remove
-                args.jobLog("loaded media info:\n".concat(mediaInfo));
+                args.jobLog("loaded media info:\n".concat(JSON.stringify(mediaInfo)));
                 videoCodecRegex = /(h264|h265|x264|x265|avc|hevc|mpeg2|av1)/gi;
                 videoResRegex = /(480p|576p|720p|1080p|1440p|2160p|4320p)/gi;
                 audioCodecRegex = /(aac|ac3|eac3|flac|mp2|mp3|truehd|dts[-. ]hd[-. ]ma|dts[-. ]hd[-. ]es|dts[-. ]hd[-. ]hra|dts[-. ]express|dts)/gi;
@@ -191,14 +190,13 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 fileFullName = filePath.base;
                 fileBaseName = filePath.name;
                 fileDir = filePath.dir;
+                // ToDo - remove
                 args.jobLog("looking for files in [".concat(fileDir, "] with name like [").concat(fileBaseName, "] and extensions ").concat(JSON.stringify(supportedExtensions)));
                 files = [fileFullName];
                 // if enabled add other files in the directory
                 if (renameOtherFiles) {
                     fs_1.default.readdirSync(fileDir).forEach(function (item) {
-                        args.jobLog("checking if we should rename file [".concat(fileDir, "/").concat(item, "]"));
                         var otherPath = path_1.default.parse("".concat(fileDir, "/").concat(item));
-                        args.jobLog("parsed path: ".concat(JSON.stringify(otherPath)));
                         if (otherPath // able to parse the path
                             && otherPath.base !== fileFullName // not our original video file
                             && otherPath.name.startsWith(fileBaseName) // matches input file pattern
@@ -211,10 +209,12 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 // trim entries, remove empty, and ensure unique
                 files.map(function (item) { return item === null || item === void 0 ? void 0 : item.trim(); }).filter(function (item) { return item; })
                     .filter(function (item, index, items) { return items.indexOf(item) === index; });
+                // ToDo - remove
                 args.jobLog("files to rename: ".concat(JSON.stringify(files)));
+                // ToDo - remove
                 // iterate files
                 files.forEach(function (originalName) {
-                    var _a, _b;
+                    var _a;
                     var newName = originalName;
                     var originalSuffix;
                     // if using the metadata delimiter parse only the end of the file
@@ -229,12 +229,11 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         // first find the first video stream and get its media info
                         var videoStream_1 = streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
                         // ToDo
-                        var videoMediaInfo = (_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (infoTrack) {
-                            args.jobLog("checking info track ".concat(JSON.stringify(infoTrack)));
-                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                            // @ts-ignore
-                            return (infoTrack === null || infoTrack === void 0 ? void 0 : infoTrack.StreamOrder) === videoStream_1.index;
-                        })) === null || _b === void 0 ? void 0 : _b[0];
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        var videoMediaInfos = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (infoTrack) { return (infoTrack === null || infoTrack === void 0 ? void 0 : infoTrack.StreamOrder) === videoStream_1.index; });
+                        args.jobLog("found matching media info: ".concat(JSON.stringify(videoMediaInfos)));
+                        var videoMediaInfo = videoMediaInfos === null || videoMediaInfos === void 0 ? void 0 : videoMediaInfos[0];
                         // ToDo - remove logging
                         args.jobLog("using video media info:\n".concat(JSON.stringify(videoMediaInfo)));
                         // ToDo - remove logging
