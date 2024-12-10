@@ -180,12 +180,10 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                 metadataDelimiter = (_a = String(args.inputs.metadataDelimiter)) !== null && _a !== void 0 ? _a : undefined;
                 streams = args.inputFileObj.ffProbeData.streams;
                 mediaInfo = args.inputFileObj.mediaInfo;
-                // ToDo - remove
-                args.jobLog("loaded media info:\n".concat(JSON.stringify(mediaInfo)));
                 videoCodecRegex = /(h264|h265|x264|x265|avc|hevc|mpeg2|av1)/gi;
                 videoResRegex = /(480p|576p|720p|1080p|1440p|2160p|4320p)/gi;
                 audioCodecRegex = /(aac|ac3|eac3|flac|mp2|mp3|truehd|dts[-. ]hd[-. ]ma|dts[-. ]hd[-. ]es|dts[-. ]hd[-. ]hra|dts[-. ]express|dts)/gi;
-                audioChannelsRegex = /(1\.0|2\.0|2\.1|3\.0|3\.1|5\.1|6\.1|7\.1|)/gi;
+                audioChannelsRegex = /(1\.0|2\.0|2\.1|3\.0|3\.1|5\.1|6\.1|7\.1)/gi;
                 filePath = path_1.default.parse(args.inputFileObj._id);
                 fileFullName = filePath.base;
                 fileBaseName = filePath.name;
@@ -219,7 +217,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     // if using the metadata delimiter parse only the end of the file
                     args.jobLog("checking if [".concat(originalName, "] contains delimiter [").concat(metadataDelimiter, "]"));
                     if (metadataDelimiter && originalName.includes(metadataDelimiter)) {
-                        newName = originalName.substring(originalName.indexOf(metadataDelimiter));
+                        newName = originalName.substring(originalName.indexOf(metadataDelimiter) + metadataDelimiter.length);
                         originalSuffix = newName;
                         args.jobLog("executing rename on [".concat(newName, "], original suffix: [").concat(originalSuffix, "]"));
                     }
