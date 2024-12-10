@@ -212,7 +212,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   // grab media info
   const { mediaInfo } = args.inputFileObj;
   // regexes for replacing
-  const videoCodecRegex = /(h264|h265|x264|x265|avc|hevc|mpeg2|av1)/gi;
+  const videoCodecRegex = /(h264|h265|x264|x265|avc|hevc|mpeg2|av1|vc1)/gi;
   const videoResRegex = /(480p|576p|720p|1080p|1440p|2160p|4320p)/gi;
   const audioCodecRegex = /(aac|ac3|eac3|flac|mp2|mp3|truehd|dts[-. ]hd[-. ]ma|dts[-. ]hd[-. ]es|dts[-. ]hd[-. ]hra|dts[-. ]express|dts)/gi;
   const audioChannelsRegex = /(1\.0|2\.0|2\.1|3\.0|3\.1|5\.1|6\.1|7\.1)/gi;
@@ -221,11 +221,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   const fileFullName: string = filePath.base;
   const fileBaseName: string = filePath.name;
   const fileDir: string = filePath.dir;
-
-  // ToDo - remove
   args.jobLog(`looking for files in [${fileDir}] with name like [${fileBaseName}] and extensions ${JSON.stringify(supportedExtensions)}`);
-  // ToDo - remove
-
   // build a list of other files in the directory - start with our video file
   const files: string[] = [fileFullName];
   // if enabled add other files in the directory
@@ -244,17 +240,13 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   // trim entries, remove empty, and ensure unique
   files.map((item) => item?.trim()).filter((item) => item)
     .filter((item, index, items) => items.indexOf(item) === index);
-
-  // ToDo - remove
-  args.jobLog(`files to rename: ${JSON.stringify(files)}`);
-  // ToDo - remove
-
   // iterate files
   files.forEach((originalName) => {
     let newName: string = originalName;
     let originalSuffix: string | undefined;
     // if using the metadata delimiter parse only the end of the file
     args.jobLog(`checking if [${originalName}] contains delimiter [${metadataDelimiter}]`);
+    // ToDo - regex for format specifiers instead of delimiter
     if (metadataDelimiter && originalName.includes(metadataDelimiter)) {
       newName = originalName.substring(originalName.indexOf(metadataDelimiter) + metadataDelimiter.length);
       originalSuffix = newName;
@@ -265,43 +257,25 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
       // first find the first video stream and get its media info
       const videoStream: Istreams | undefined = streams?.filter((stream) => getCodecType(stream) === 'video')[0];
       const videoMediaInfo = getMediaInfoTrack(videoStream, mediaInfo);
-
-      // ToDo - remove logging
-      args.jobLog(`using video media info:\n${JSON.stringify(videoMediaInfo)}`);
-      // ToDo - remove logging
-
       // handle video codec replacement if enabled
       if (replaceVideoCodec) {
         newName = newName.replace(videoCodecRegex, getFileCodecName(videoStream, videoMediaInfo));
-
-        args.jobLog(`name after video codec: [${newName}]`);
       }
       // handle video resolution replacement if enabled
       if (replaceVideoRes) {
         newName = newName.replace(videoResRegex, getResolutionName(videoStream));
-
-        args.jobLog(`name after video resolution: [${newName}]`);
       }
     }
     if (replaceAudioCodec || replaceAudioChannels) {
       const audioStream: Istreams | undefined = streams?.filter((stream) => getCodecType(stream) === 'audio')[0];
       const audioMediaInfo = getMediaInfoTrack(audioStream, mediaInfo);
-
-      // ToDo - remove logging
-      args.jobLog(`using audio media info:\n${JSON.stringify(audioMediaInfo)}`);
-      // ToDo - remove logging
-
       // handle audio codec replacement if enabled
       if (replaceAudioCodec) {
         newName = newName.replace(audioCodecRegex, getFileCodecName(audioStream, audioMediaInfo));
-
-        args.jobLog(`name after audio codec: [${newName}]`);
       }
       // handle audio channels replacement if enabled
       if (replaceAudioChannels) {
         newName = newName.replace(audioChannelsRegex, getChannelsName(audioStream));
-
-        args.jobLog(`name after audio channels: [${newName}]`);
       }
     }
     // if using the metadata delimiter now replace the entire original suffix with the new one
