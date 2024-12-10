@@ -5,7 +5,6 @@ import path, { ParsedPath } from 'path';
 import fs from 'fs';
 import fileMoveOrCopy from '../../../../FlowHelpers/1.0.0/fileMoveOrCopy';
 import {
-  IffmpegCommandStream,
   IpluginDetails,
   IpluginInputArgs,
   IpluginOutputArgs,
@@ -211,7 +210,8 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   // grab a handle to streams
   const { streams } = args.inputFileObj.ffProbeData;
   // execute a media info scan
-  const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
+  // const mediaInfo: ImediaInfo | undefined = await getMediaInfo(args);
+  const { mediaInfo } = args.inputFileObj;
 
   // ToDo - remove
   args.jobLog(`loaded media info:\n${JSON.stringify(mediaInfo)}`);
@@ -270,26 +270,12 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
     if (replaceVideoCodec || replaceVideoRes) {
       // first find the first video stream and get its media info
       const videoStream: Istreams | undefined = streams?.filter((stream) => getCodecType(stream) === 'video')[0];
-
-      args.jobLog(`using video stream: ${JSON.stringify(videoStream)}`);
-      // ToDo
-      const videoMediaInfos = mediaInfo?.track?.filter((infoTrack) => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const infoStreamOrder = Number(infoTrack['StreamOrder']) ?? 99;
-        const videoStreamIndex = Number(videoStream?.index) ?? 99;
-        args.jobLog(`checking if info stream order [${infoStreamOrder}] equals video index [${videoStreamIndex}]`);
-        const infoStreamType = infoTrack['@type'];
-        args.jobLog(`info stream is of type [${infoStreamType}]`);
-        return infoStreamOrder === videoStreamIndex;
-      });
-      args.jobLog(`found matching media info: ${JSON.stringify(videoMediaInfos)}`);
-
-      const videoMediaInfo = videoMediaInfos?.[0];
+      const videoMediaInfo = getMediaInfoTrack(videoStream, mediaInfo);
 
       // ToDo - remove logging
       args.jobLog(`using video media info:\n${JSON.stringify(videoMediaInfo)}`);
       // ToDo - remove logging
+
       // handle video codec replacement if enabled
       if (replaceVideoCodec) {
         newName = newName.replace(videoCodecRegex, getCodecName(videoStream, videoMediaInfo));
@@ -333,14 +319,14 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
     // ToDo - actually rename
   });
 
-  // if (fileBaseName === '') {
-  //   await fileMoveOrCopy({
-  //     operation: 'move',
-  //     sourcePath: args.inputFileObj._id,
-  //     destinationPath: `${fileDir}/${fileBaseName}`,
-  //     args,
-  //   });
-  // }
+  if (fileBaseName === 'aaaa') {
+    await fileMoveOrCopy({
+      operation: 'move',
+      sourcePath: args.inputFileObj._id,
+      destinationPath: `${fileDir}/${fileBaseName}`,
+      args,
+    });
+  }
 
   // let newName = String(args.inputs.fileRename).trim();
   // newName = newName.replace(/\${fileName}/g, fileName);

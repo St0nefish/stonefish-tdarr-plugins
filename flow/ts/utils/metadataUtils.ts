@@ -1,6 +1,7 @@
 // disable some eslint parsing - support 'any' arg type because mediaInfo track entries don't have a defined type
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable dot-notation */
 
 import { IffmpegCommandStream, IpluginInputArgs } from '../interfaces/interfaces';
 import { IFileObject, ImediaInfo, Istreams } from '../interfaces/synced/IFileObject';
@@ -19,16 +20,20 @@ export const getMediaInfo = async (args: IpluginInputArgs): Promise<ImediaInfo |
   return file.mediaInfo;
 };
 
+// function to get the codec type
+export const getCodecType = (stream?: Istreams): string => (stream?.codec_type?.toLowerCase() ?? '');
+
 // function to get the correct media info track for the input stream - assumes indexes are untouched
-export const getMediaInfoTrack = (stream?: Istreams, mediaInfo?: any) => (
-  mediaInfo?.track?.filter((item: any) => item.StreamOrder === stream?.index) ?? undefined
+export const getMediaInfoTrack = (stream?: Istreams, mediaInfo?: ImediaInfo) => (
+  mediaInfo?.track?.filter((infoTrack) => (
+    infoTrack['@type'] === getCodecType(stream)
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    && (Number(infoTrack['StreamOrder']) ?? -1) === (Number(videoStream?.index) ?? -1)))?.[0]
 );
 
-// function to get the codec type
-export const getCodecType = (stream: Istreams): string => (stream.codec_type.toLowerCase() ?? '');
-
 // function to get stream type flag for use in qualifiers
-export const getStreamTypeFlag = (stream: IffmpegCommandStream): string => (Array.from(getCodecType(stream))[0]);
+export const getStreamTypeFlag = (stream: IffmpegCommandStream): string => (Array.from(getCodecType(stream) ?? '')[0]);
 
 // function to get the codec friendly name
 export const getCodecName = (stream?: Istreams, mediaInfo?: any): string => (

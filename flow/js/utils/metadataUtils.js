@@ -2,6 +2,7 @@
 // disable some eslint parsing - support 'any' arg type because mediaInfo track entries don't have a defined type
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable dot-notation */
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -48,7 +49,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getStreamSorter = exports.getTitleForStream = exports.generateTitleForStream = exports.streamIsDescriptiveCommentary = exports.streamIsDescriptive = exports.streamIsCommentary = exports.streamIsStandard = exports.streamHasDescriptive = exports.streamHasCommentary = exports.streamMatchesLanguage = exports.streamMatchesLanguages = exports.getLanguageName = exports.getLanguageTag = exports.isLanguageUndefined = exports.getEncoder = exports.getBitDepthText = exports.getBitDepth = exports.getSampleRateText = exports.getSampleRate = exports.getChannelCount = exports.getChannelsName = exports.isLosslessAudio = exports.getBitrateText = exports.getBitrate = exports.getResolutionName = exports.getTypeCountsMap = exports.setTypeIndexes = exports.getCodecName = exports.getStreamTypeFlag = exports.getCodecType = exports.getMediaInfoTrack = exports.getMediaInfo = void 0;
+exports.getStreamSorter = exports.getTitleForStream = exports.generateTitleForStream = exports.streamIsDescriptiveCommentary = exports.streamIsDescriptive = exports.streamIsCommentary = exports.streamIsStandard = exports.streamHasDescriptive = exports.streamHasCommentary = exports.streamMatchesLanguage = exports.streamMatchesLanguages = exports.getLanguageName = exports.getLanguageTag = exports.isLanguageUndefined = exports.getEncoder = exports.getBitDepthText = exports.getBitDepth = exports.getSampleRateText = exports.getSampleRate = exports.getChannelCount = exports.getChannelsName = exports.isLosslessAudio = exports.getBitrateText = exports.getBitrate = exports.getResolutionName = exports.getTypeCountsMap = exports.setTypeIndexes = exports.getCodecName = exports.getStreamTypeFlag = exports.getMediaInfoTrack = exports.getCodecType = exports.getMediaInfo = void 0;
 // function to execute a MediaInfo scan (if possible) and return a File object with embedded mediaInfo data
 var getMediaInfo = function (args) { return __awaiter(void 0, void 0, void 0, function () {
     var file;
@@ -71,17 +72,23 @@ var getMediaInfo = function (args) { return __awaiter(void 0, void 0, void 0, fu
     });
 }); };
 exports.getMediaInfo = getMediaInfo;
+// function to get the codec type
+var getCodecType = function (stream) { var _a, _b; return ((_b = (_a = stream === null || stream === void 0 ? void 0 : stream.codec_type) === null || _a === void 0 ? void 0 : _a.toLowerCase()) !== null && _b !== void 0 ? _b : ''); };
+exports.getCodecType = getCodecType;
 // function to get the correct media info track for the input stream - assumes indexes are untouched
 var getMediaInfoTrack = function (stream, mediaInfo) {
     var _a, _b;
-    return ((_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (item) { return item.StreamOrder === (stream === null || stream === void 0 ? void 0 : stream.index); })) !== null && _b !== void 0 ? _b : undefined);
+    return ((_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.track) === null || _a === void 0 ? void 0 : _a.filter(function (infoTrack) {
+        var _a, _b;
+        return (infoTrack['@type'] === (0, exports.getCodecType)(stream)
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            && ((_a = Number(infoTrack['StreamOrder'])) !== null && _a !== void 0 ? _a : -1) === ((_b = Number(videoStream === null || videoStream === void 0 ? void 0 : videoStream.index)) !== null && _b !== void 0 ? _b : -1));
+    })) === null || _b === void 0 ? void 0 : _b[0]);
 };
 exports.getMediaInfoTrack = getMediaInfoTrack;
-// function to get the codec type
-var getCodecType = function (stream) { var _a; return ((_a = stream.codec_type.toLowerCase()) !== null && _a !== void 0 ? _a : ''); };
-exports.getCodecType = getCodecType;
 // function to get stream type flag for use in qualifiers
-var getStreamTypeFlag = function (stream) { return (Array.from((0, exports.getCodecType)(stream))[0]); };
+var getStreamTypeFlag = function (stream) { var _a; return (Array.from((_a = (0, exports.getCodecType)(stream)) !== null && _a !== void 0 ? _a : '')[0]); };
 exports.getStreamTypeFlag = getStreamTypeFlag;
 // function to get the codec friendly name
 var getCodecName = function (stream, mediaInfo) {
