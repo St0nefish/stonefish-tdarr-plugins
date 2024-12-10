@@ -231,7 +231,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         // ToDo - remove logging
                         // handle video codec replacement if enabled
                         if (replaceVideoCodec) {
-                            newName = newName.replace(videoCodecRegex, (0, metadataUtils_1.getCodecName)(videoStream, videoMediaInfo));
+                            newName = newName.replace(videoCodecRegex, (0, metadataUtils_1.getFileCodecName)(videoStream, videoMediaInfo));
                             args.jobLog("name after video codec: [".concat(newName, "]"));
                         }
                         // handle video resolution replacement if enabled
@@ -248,7 +248,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         // ToDo - remove logging
                         // handle audio codec replacement if enabled
                         if (replaceAudioCodec) {
-                            newName = newName.replace(audioCodecRegex, (0, metadataUtils_1.getCodecName)(audioStream, audioMediaInfo));
+                            newName = newName.replace(audioCodecRegex, (0, metadataUtils_1.getFileCodecName)(audioStream, audioMediaInfo));
                             args.jobLog("name after audio codec: [".concat(newName, "]"));
                         }
                         // handle audio channels replacement if enabled

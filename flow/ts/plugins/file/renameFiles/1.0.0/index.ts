@@ -11,12 +11,12 @@ import {
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import {
   getChannelsName,
-  getCodecName,
   getCodecType,
-  getMediaInfo, getMediaInfoTrack,
+  getFileCodecName,
+  getMediaInfoTrack,
   getResolutionName,
 } from '../../../../FlowHelpers/1.0.0/local/metadataUtils';
-import { ImediaInfo, Istreams } from '../../../../FlowHelpers/1.0.0/interfaces/synced/IFileObject';
+import { Istreams } from '../../../../FlowHelpers/1.0.0/interfaces/synced/IFileObject';
 
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 const details = (): IpluginDetails => ({
@@ -272,7 +272,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
 
       // handle video codec replacement if enabled
       if (replaceVideoCodec) {
-        newName = newName.replace(videoCodecRegex, getCodecName(videoStream, videoMediaInfo));
+        newName = newName.replace(videoCodecRegex, getFileCodecName(videoStream, videoMediaInfo));
 
         args.jobLog(`name after video codec: [${newName}]`);
       }
@@ -293,7 +293,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
 
       // handle audio codec replacement if enabled
       if (replaceAudioCodec) {
-        newName = newName.replace(audioCodecRegex, getCodecName(audioStream, audioMediaInfo));
+        newName = newName.replace(audioCodecRegex, getFileCodecName(audioStream, audioMediaInfo));
 
         args.jobLog(`name after audio codec: [${newName}]`);
       }

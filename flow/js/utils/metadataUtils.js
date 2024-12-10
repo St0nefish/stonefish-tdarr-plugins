@@ -49,7 +49,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getStreamSorter = exports.getTitleForStream = exports.generateTitleForStream = exports.streamIsDescriptiveCommentary = exports.streamIsDescriptive = exports.streamIsCommentary = exports.streamIsStandard = exports.streamHasDescriptive = exports.streamHasCommentary = exports.streamMatchesLanguage = exports.streamMatchesLanguages = exports.getLanguageName = exports.getLanguageTag = exports.isLanguageUndefined = exports.getEncoder = exports.getBitDepthText = exports.getBitDepth = exports.getSampleRateText = exports.getSampleRate = exports.getChannelCount = exports.getChannelsName = exports.isLosslessAudio = exports.getBitrateText = exports.getBitrate = exports.getResolutionName = exports.getTypeCountsMap = exports.setTypeIndexes = exports.getCodecName = exports.getStreamTypeFlag = exports.getMediaInfoTrack = exports.getCodecType = exports.getMediaInfo = void 0;
+exports.getStreamSorter = exports.getTitleForStream = exports.generateTitleForStream = exports.streamIsDescriptiveCommentary = exports.streamIsDescriptive = exports.streamIsCommentary = exports.streamIsStandard = exports.streamHasDescriptive = exports.streamHasCommentary = exports.streamMatchesLanguage = exports.streamMatchesLanguages = exports.getLanguageName = exports.getLanguageTag = exports.isLanguageUndefined = exports.getEncoder = exports.getBitDepthText = exports.getBitDepth = exports.getSampleRateText = exports.getSampleRate = exports.getChannelCount = exports.getChannelsName = exports.isLosslessAudio = exports.getBitrateText = exports.getBitrate = exports.getResolutionName = exports.getTypeCountsMap = exports.setTypeIndexes = exports.getFileCodecName = exports.getCodecName = exports.getStreamTypeFlag = exports.getMediaInfoTrack = exports.getCodecType = exports.getMediaInfo = void 0;
 // function to execute a MediaInfo scan (if possible) and return a File object with embedded mediaInfo data
 var getMediaInfo = function (args) { return __awaiter(void 0, void 0, void 0, function () {
     var file;
@@ -97,6 +97,52 @@ var getCodecName = function (stream, mediaInfo) {
     return ((_b = (_a = mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.Format_Commercial_IfAny) !== null && _a !== void 0 ? _a : mediaInfo === null || mediaInfo === void 0 ? void 0 : mediaInfo.Format) !== null && _b !== void 0 ? _b : (_c = stream === null || stream === void 0 ? void 0 : stream.codec_name) === null || _c === void 0 ? void 0 : _c.toUpperCase());
 };
 exports.getCodecName = getCodecName;
+// function to get video codec name for rename purposes
+// map of audio codecs to display names
+var audioCodecMap = {
+    aac: 'AAC',
+    ac3: 'AC3',
+    av1: 'AV1',
+    dts: 'DTS',
+    eac3: 'EAC3',
+    flac: 'FLAC',
+    mp2: 'MP2',
+    mp3: 'MP3',
+    mpeg2: 'MPEG2',
+    truehd: 'TrueHD',
+    'dts-hd ma': 'DTS-HD MA',
+    'dts-es': 'DTS-HD ES',
+    'dts-hd hra': 'DTS-HD HRA',
+    'dts express ': 'DTS Express',
+    'dts 96/24': 'DTS',
+};
+var getFileCodecName = function (stream, mediaInfo) {
+    var codecType = (0, exports.getCodecType)(stream);
+    var codec = String(stream === null || stream === void 0 ? void 0 : stream.codec_name).toLowerCase();
+    if (codecType === 'video') {
+        if (['hevc', 'x265', 'h265'].includes(codec)) {
+            // 265
+            // check if encoder was x265
+            if (mediaInfo['Encoded_Library_Name'] === 'x265') {
+                return 'x265';
+            }
+            return 'h265';
+        }
+        if (['avc', 'x264', 'h264'].includes(codec)) {
+            // 264
+            // check if encoder was x265
+            if (mediaInfo['Encoded_Library_Name'] === 'x264') {
+                return 'x264';
+            }
+            return 'h264';
+        }
+    }
+    if (codecType === 'audio') {
+        return audioCodecMap[codec];
+    }
+    return codec;
+};
+exports.getFileCodecName = getFileCodecName;
 // function to set a typeIndex field on each stream in the input array
 var setTypeIndexes = function (streams) { return (streams.map(function (stream) { return (0, exports.getCodecType)(stream); })
     .filter(function (value, index, array) { return array.indexOf(value) === index; })

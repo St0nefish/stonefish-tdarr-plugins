@@ -41,6 +41,52 @@ export const getCodecName = (stream?: Istreams, mediaInfo?: any): string => (
   mediaInfo?.Format_Commercial_IfAny ?? mediaInfo?.Format ?? stream?.codec_name?.toUpperCase()
 );
 
+// function to get video codec name for rename purposes
+// map of audio codecs to display names
+const audioCodecMap: { [key: string]: string } = {
+  aac: 'AAC',
+  ac3: 'AC3',
+  av1: 'AV1',
+  dts: 'DTS',
+  eac3: 'EAC3',
+  flac: 'FLAC',
+  mp2: 'MP2',
+  mp3: 'MP3',
+  mpeg2: 'MPEG2',
+  truehd: 'TrueHD',
+  'dts-hd ma': 'DTS-HD MA',
+  'dts-es': 'DTS-HD ES',
+  'dts-hd hra': 'DTS-HD HRA',
+  'dts express ': 'DTS Express',
+  'dts 96/24': 'DTS',
+};
+export const getFileCodecName = (stream?: Istreams, mediaInfo?: any): string => {
+  const codecType: string = getCodecType(stream);
+  const codec: string = String(stream?.codec_name).toLowerCase();
+  if (codecType === 'video') {
+    if (['hevc', 'x265', 'h265'].includes(codec)) {
+      // 265
+      // check if encoder was x265
+      if (mediaInfo['Encoded_Library_Name'] === 'x265') {
+        return 'x265';
+      }
+      return 'h265';
+    }
+    if (['avc', 'x264', 'h264'].includes(codec)) {
+      // 264
+      // check if encoder was x265
+      if (mediaInfo['Encoded_Library_Name'] === 'x264') {
+        return 'x264';
+      }
+      return 'h264';
+    }
+  }
+  if (codecType === 'audio') {
+    return audioCodecMap[codec];
+  }
+  return codec;
+};
+
 // function to set a typeIndex field on each stream in the input array
 export const setTypeIndexes = (streams: IffmpegCommandStream[]): void => (
   streams.map((stream) => getCodecType(stream))
