@@ -290,7 +290,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
       }
     }
     if (replaceAudioCodec || replaceAudioChannels) {
-      const audioStream: Istreams | undefined = streams?.filter((stream) => getCodecType(stream) === 'video')[0];
+      const audioStream: Istreams | undefined = streams?.filter((stream) => getCodecType(stream) === 'audio')[0];
       const audioMediaInfo = getMediaInfoTrack(audioStream, mediaInfo);
 
       // ToDo - remove logging

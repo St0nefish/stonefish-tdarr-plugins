@@ -243,7 +243,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                         }
                     }
                     if (replaceAudioCodec || replaceAudioChannels) {
-                        var audioStream = streams === null || streams === void 0 ? void 0 : streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'video'; })[0];
+                        var audioStream = streams === null || streams === void 0 ? void 0 : streams.filter(function (stream) { return (0, metadataUtils_1.getCodecType)(stream) === 'audio'; })[0];
                         var audioMediaInfo = (0, metadataUtils_1.getMediaInfoTrack)(audioStream, mediaInfo);
                         // ToDo - remove logging
                         args.jobLog("using audio media info:\n".concat(JSON.stringify(audioMediaInfo)));
